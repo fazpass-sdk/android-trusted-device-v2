@@ -7,12 +7,12 @@ import android.os.Build
 import android.util.Base64
 import java.security.MessageDigest
 
-class AppSignatureUtil {
+@Suppress("DEPRECATION")
+@SuppressLint("PackageManagerGetSignatures")
+internal class AppSignatureUtil {
 
     companion object {
 
-        @Suppress("DEPRECATION")
-        @SuppressLint("PackageManagerGetSignatures")
         fun getSignatures(context: Context) : List<String>? {
             return try {
                 val packageManager = context.packageManager

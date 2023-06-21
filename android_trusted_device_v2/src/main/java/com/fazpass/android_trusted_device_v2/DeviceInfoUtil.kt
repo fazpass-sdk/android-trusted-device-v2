@@ -6,15 +6,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
-import android.util.Log
 import androidx.core.content.ContextCompat
 import com.fazpass.android_trusted_device_v2.`object`.DeviceInfo
 import java.io.File
-import java.io.IOException
 import java.util.Scanner
 
-
-class DeviceInfoUtil {
+@Suppress("DEPRECATION")
+internal class DeviceInfoUtil {
 
     companion object {
 
@@ -29,19 +27,14 @@ class DeviceInfoUtil {
                 val map: HashMap<String, String> = HashMap()
                 val scanner =  Scanner(File("/proc/cpuinfo"))
                 while (scanner.hasNextLine()) {
-                    val vals = scanner.nextLine().split(": ")
-                    if (vals.size > 1) map[vals[0].lowercase().trim { it <= ' ' }] = vals[1].trim { it <= ' ' }
+                    val v = scanner.nextLine().split(": ")
+                    if (v.size > 1) map[v[0].lowercase().trim { it <= ' ' }] = v[1].trim { it <= ' ' }
                 }
 
-                Log.d("CPU INFO", map.toString())
-                if (map.contains("model name")) {
-                    cpuModel = map["model name"]
-                }
-                else if (map.contains("hardware")) {
-                    cpuModel = map["hardware"]
-                }
-                else if (map.contains("cpu implementer")) {
-                    cpuModel = map["cpu implementer"]
+                when {
+                    map.contains("model name") -> cpuModel = map["model name"]
+                    map.contains("hardware") -> cpuModel = map["hardware"]
+                    map.contains("cpu implementer") -> cpuModel = map["cpu implementer"]
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

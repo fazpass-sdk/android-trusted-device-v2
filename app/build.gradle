@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.fazpass.android_trusted_device_v2'
+    namespace 'com.fazpass.android_trusted_device_v2_app'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.fazpass.android_trusted_device_v2"
+        applicationId "com.fazpass.android_trusted_device_v2_app"
         minSdk 21
         targetSdk 33
         versionCode 1
