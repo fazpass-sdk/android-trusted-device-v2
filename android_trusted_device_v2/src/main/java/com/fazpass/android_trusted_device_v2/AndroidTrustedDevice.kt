@@ -5,74 +5,106 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.res.AssetManager
 import android.location.Location
 import android.os.Build
+import android.util.Base64
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.fazpass.android_trusted_device_v2.enum.CrossDeviceStatus
-import com.fazpass.android_trusted_device_v2.enum.TrustedDeviceStatus
+import com.fasterxml.jackson.core.Version
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fazpass.android_trusted_device_v2.`object`.Coordinate
 import com.fazpass.android_trusted_device_v2.`object`.MetaData
+import com.fazpass.android_trusted_device_v2.`object`.MetaDataSerializer
+import java.io.IOException
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
+import java.security.KeyFactory
+import java.security.PublicKey
+import java.security.spec.X509EncodedKeySpec
+import javax.crypto.Cipher
+
 
 internal class AndroidTrustedDevice : Fazpass {
 
-    private var appPackageName : String? = null
+    private var isInitialized : Boolean = false
+    private lateinit var assetManager : AssetManager
+    private lateinit var publicKeyAssetName : String
 
-    override fun init(context: Context, appPackageName: String) {
-        this.appPackageName = appPackageName
-        NotificationUtil(context).initNotificationChannel()
-        CloningUtil.init(appPackageName)
-    }
+    override fun init(context: Context, keyAssetName: String) {
+        assetManager = context.assets
 
-    override fun check(
-        context: Context,
-        callback: (TrustedDeviceStatus, CrossDeviceStatus) -> Unit
-    ) {
-        generateMeta(context) {
-            Log.i("META-PLATFORM", it.platform)
-            Log.i("META-ROOTED", it.isRooted.toString())
-            Log.i("META-EMULATOR", it.isEmulator.toString())
-            Log.i("META-VPN", it.isVpn.toString())
-            Log.i("META-CLONED", it.isCloned.toString())
-            Log.i("META-SCREEN_MIRRORING", it.isScreenMirroring.toString())
-            Log.i("META-DEBUGGABLE", it.isDebuggable.toString())
-            Log.i("META-SIGNATURES", it.signatures.toString())
-            Log.i("META-DEVICE_INFO", it.deviceInfo.toString())
-            Log.i("META-SIM_NUMBERS", it.simNumbers.toString())
-            Log.i("META-COORDINATE", it.coordinate.toString())
-            Log.i("META-MOCK_LOCATION", it.isMockLocation.toString())
-
-            // simulate device is trusted and cross device is available
-            callback(TrustedDeviceStatus.Trusted, CrossDeviceStatus.Available)
+        var assetNotExist = false
+        var iStream : InputStream? = null
+        try {
+            iStream = assetManager.open(keyAssetName)
+        } catch (e: IOException) {
+            assetNotExist = true
+            assetManager.close()
+        } finally {
+            iStream?.close()
         }
+        if (assetNotExist) throw Exception("Key *.pub file with the name $keyAssetName doesn't exist in the 'assets' directory!")
+
+        this.publicKeyAssetName = keyAssetName
+        NotificationUtil(context).initNotificationChannel()
+        this.isInitialized = true
     }
 
-    override fun validate(callback: (Double) -> Unit) {
-        // simulate super trusted confidence level
-        callback(1.0)
-    }
+    override fun generateMeta(context: Context, callback: (String) -> Unit) {
+        if (!isInitialized) throw Exception("Fazpass init has to be called first!")
 
-    override fun enrollByPin(context: Context, pin: String, callback: (Boolean) -> Unit) {
-        TODO("Not yet implemented")
-    }
+        val platform = "android"
+        val packageName = context.packageName
+        val isRooted = RootUtil.isDeviceRooted(context)
+        val isEmulator = EmulatorUtil.isEmulator
+        val isVpn = ConnectionUtil.isVpnConnectionAvailable(context)
+        val isCloned = CloningUtil(context).isAppCloned
+        val isScreenMirroring = ScreenMirroringUtil(context).isScreenMirroring
+        val isDebuggable = 0 != context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE
 
-    override fun enrollByFinger(context: Context, callback: (Boolean) -> Unit) {
-        TODO("Not yet implemented")
-    }
+        val signatures = AppSignatureUtil.getSignatures(context)
+        val deviceInfo = DeviceInfoUtil.deviceInfo
+        val simNumbers = DeviceInfoUtil.getSimNumbers(context)
 
-    override fun removeDevice(context: Context) {
-        TODO("Not yet implemented")
-    }
+        val locationUtil = LocationUtil(context)
+        locationUtil.getLastKnownLocation {
+            val location : Location? = it
+            val isMockLocation : Boolean = locationUtil.isMockLocationOn(it)
+            val coordinate = if (location != null) {
+                Coordinate(location.latitude, location.longitude)
+            }
+            else {
+                Coordinate(0.0,0.0)
+            }
 
-    override fun validateCrossDevice(context: Context) {
-        TODO("Not yet implemented")
+            val metadata = MetaData(
+                platform = platform,
+                isRooted = isRooted,
+                isEmulator = isEmulator,
+                isVpn = isVpn,
+                isCloned = isCloned,
+                isScreenMirroring = isScreenMirroring,
+                isDebuggable = isDebuggable,
+                signatures = signatures,
+                deviceInfo = deviceInfo,
+                simNumbers = simNumbers,
+                coordinate = coordinate,
+                isMockLocation = isMockLocation,
+                packageName = packageName
+            )
+
+            callback(encryptMetaData(metadata))
+        }
     }
 
     override fun requestPermissions(activity: Activity) {
         val requiredPermissions = ArrayList(
             listOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.READ_PHONE_STATE,
                 Manifest.permission.ACCESS_NETWORK_STATE,
             )
@@ -100,50 +132,52 @@ internal class AndroidTrustedDevice : Fazpass {
         )
     }
 
-    override fun getSignatures(context: Context): List<String>? {
-        return AppSignatureUtil.getSignatures(context)
+    private fun encryptMetaData(metadata: MetaData) : String {
+        printMetaData(metadata)
+
+        val objectMapper = ObjectMapper()
+        val module = SimpleModule("MetaDataSerializer", Version(1,0,0,null,null,null))
+        module.addSerializer(MetaData::class.java, MetaDataSerializer())
+        objectMapper.registerModule(module)
+        val jsonString: String = objectMapper.writeValueAsString(metadata)
+        Log.i("META-AS-STRING", jsonString)
+
+        var key = String(assetManager.open(publicKeyAssetName).readBytes())
+        key = key.replace("-----BEGIN RSA PUBLIC KEY-----", "")
+            .replace("-----END RSA PUBLIC KEY-----", "")
+            .replace("\n", "").replace("\r", "")
+        var publicKey: PublicKey? = null
+        try {
+            val keySpec = X509EncodedKeySpec(Base64.decode(key, Base64.DEFAULT))
+            val keyFactory = KeyFactory.getInstance("RSA")
+            publicKey = keyFactory.generatePublic(keySpec)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Encrypt string JSON with public key
+        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        val encryptedBytes = cipher.doFinal(jsonString.toByteArray(StandardCharsets.UTF_8))
+
+        // Encode to base64 string then return
+        return Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
     }
 
-    private fun generateMeta(context: Context, callback: (MetaData) -> Unit) {
-        val platform = "android"
-        val isRooted = RootUtil.isDeviceRooted(context)
-        val isVpn = ConnectionUtil.isVpnConnectionAvailable(context)
-        val isCloned = CloningUtil(context).isAppCloned
-        val isScreenMirroring = ScreenMirroringUtil(context).isScreenMirroring
-        val isDebuggable = 0 != context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE
-
-        val signatures = AppSignatureUtil.getSignatures(context)
-        val deviceInfo = DeviceInfoUtil.deviceInfo
-        val simNumbers = DeviceInfoUtil.getSimNumbers(context)
-
-        val locationUtil = LocationUtil(context)
-        locationUtil.getLastKnownLocation {
-            val location : Location? = it
-            val isMockLocation : Boolean = locationUtil.isMockLocationOn(it)
-            val coordinate = if (location != null) {
-                Coordinate(location.latitude, location.longitude)
-            }
-            else {
-                Coordinate(0.0,0.0)
-            }
-
-            EmulatorUtil.isEmulator(context) { isEmulator ->
-                callback(MetaData(
-                    platform = platform,
-                    isRooted = isRooted,
-                    isEmulator = isEmulator,
-                    isVpn = isVpn,
-                    isCloned = isCloned,
-                    isScreenMirroring = isScreenMirroring,
-                    isDebuggable = isDebuggable,
-                    signatures = signatures,
-                    deviceInfo = deviceInfo,
-                    simNumbers = simNumbers,
-                    coordinate = coordinate,
-                    isMockLocation = isMockLocation
-                ))
-            }
-        }
+    private fun printMetaData(it: MetaData) {
+        Log.i("META-PLATFORM", it.platform)
+        Log.i("META-ROOTED", it.isRooted.toString())
+        Log.i("META-EMULATOR", it.isEmulator.toString())
+        Log.i("META-VPN", it.isVpn.toString())
+        Log.i("META-CLONED", it.isCloned.toString())
+        Log.i("META-SCREEN_MIRRORING", it.isScreenMirroring.toString())
+        Log.i("META-DEBUGGABLE", it.isDebuggable.toString())
+        Log.i("META-SIGNATURES", it.signatures.toString())
+        Log.i("META-DEVICE_INFO", it.deviceInfo.toString())
+        Log.i("META-SIM_NUMBERS", it.simNumbers.toString())
+        Log.i("META-COORDINATE_LAT", "${it.coordinate.lat}")
+        Log.i("META-COORDINATE_LNG", "${it.coordinate.lng}")
+        Log.i("META-MOCK_LOCATION", it.isMockLocation.toString())
     }
 
 }

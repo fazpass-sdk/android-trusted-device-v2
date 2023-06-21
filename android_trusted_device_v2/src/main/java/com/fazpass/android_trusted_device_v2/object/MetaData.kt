@@ -13,4 +13,5 @@ data class MetaData(
     val simNumbers : List<String>,
     val coordinate : Coordinate,
     val isMockLocation : Boolean,
+    val packageName : String,
 )
