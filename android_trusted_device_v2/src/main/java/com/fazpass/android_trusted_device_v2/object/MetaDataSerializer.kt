@@ -18,7 +18,7 @@ class MetaDataSerializer @JvmOverloads constructor(t: Class<MetaData>? = null)
                 writeBooleanField("is_gps_spoof", value.isMockLocation)
 
                 writeArrayFieldStart("signature")
-                value.signatures?.forEach { writeString(it) }
+                value.signatures.forEach { writeString(it) }
                 writeEndArray()
 
                 writeBooleanField("is_vpn", value.isVpn)
@@ -36,6 +36,10 @@ class MetaDataSerializer @JvmOverloads constructor(t: Class<MetaData>? = null)
 
                 writeArrayFieldStart("sim_serial")
                 value.simNumbers.forEach { writeString(it) }
+                writeEndArray()
+
+                writeArrayFieldStart("sim_operator")
+                value.simOperators.forEach { writeString(it) }
                 writeEndArray()
 
                 writeObjectFieldStart("geolocation")

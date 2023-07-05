@@ -13,7 +13,6 @@ import android.util.Log
 internal class CloningUtil(private val context: Context) {
 
     companion object {
-
         private const val DUAL_APP_ID_999 = "999"
         private const val MAX_ACCOUNT_INDEX = 5
     }
@@ -21,7 +20,7 @@ internal class CloningUtil(private val context: Context) {
     val isAppCloned: Boolean
         get() {
             val path: String = context.filesDir.path
-            Log.i("FILES-DIR-PATH", path)
+            if (AndroidTrustedDevice.IS_DEBUG) Log.i("FILES-DIR-PATH", path)
             return hasDualAppIdOnPath(path)
                     || isAccountIndexMoreThanMax(path)
                     || hasAnotherPackageOnPath(path)

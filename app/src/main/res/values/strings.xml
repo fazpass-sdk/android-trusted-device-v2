@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Trusted Device V2</string>
+    <string name="main_view">main_view</string>
 </resources>

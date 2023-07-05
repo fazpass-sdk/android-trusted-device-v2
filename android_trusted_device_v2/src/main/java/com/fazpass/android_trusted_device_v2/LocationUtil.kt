@@ -7,8 +7,8 @@ import android.content.ServiceConnection
 import android.location.Location
 import android.os.Build
 import android.os.IBinder
-import android.provider.Settings
 
+@Suppress("DEPRECATION")
 internal class LocationUtil(private val context: Context) {
 
     private val serviceIntent = Intent(context, LocationService::class.java)
@@ -43,12 +43,9 @@ internal class LocationUtil(private val context: Context) {
             return false
         }
 
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             location.isMock
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        else
             location.isFromMockProvider
-        } else {
-            "0" != Settings.Secure.getString(context.contentResolver, Settings.Secure.ALLOW_MOCK_LOCATION)
-        }
     }
 }

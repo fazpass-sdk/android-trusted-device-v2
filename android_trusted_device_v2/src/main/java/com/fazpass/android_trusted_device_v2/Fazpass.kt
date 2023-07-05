@@ -2,7 +2,6 @@ package com.fazpass.android_trusted_device_v2
 
 import android.app.Activity
 import android.content.Context
-import android.content.res.AssetManager
 
 interface Fazpass {
 

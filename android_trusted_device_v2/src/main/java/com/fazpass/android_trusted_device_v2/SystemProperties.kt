@@ -17,6 +17,7 @@ internal object SystemProperties {
             }
             return getPropMethod!!.invoke(null, propName, defaultResult) as String? ?: defaultResult
         } catch (e: Exception) {
+            if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
             getPropMethod = null
             failedUsingReflection = true
         }
@@ -25,7 +26,8 @@ internal object SystemProperties {
             process = Runtime.getRuntime().exec("getprop \"$propName\" \"$defaultResult\"")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             return reader.readLine()
-        } catch (_: IOException) {
+        } catch (e: IOException) {
+            if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
         } finally {
             process?.destroy()
         }

@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Context
 import android.os.Build
 
+@Suppress("DEPRECATION")
 internal class NotificationUtil(private val context: Context) {
 
     companion object {

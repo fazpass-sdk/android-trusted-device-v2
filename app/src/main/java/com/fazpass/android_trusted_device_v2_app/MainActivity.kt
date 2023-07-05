@@ -1,9 +1,9 @@
 package com.fazpass.android_trusted_device_v2_app
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
-import android.widget.TextView
+import android.widget.LinearLayout
+import androidx.appcompat.app.AppCompatActivity
 import com.fazpass.android_trusted_device_v2.Fazpass
 
 class MainActivity : AppCompatActivity() {
@@ -18,14 +18,23 @@ class MainActivity : AppCompatActivity() {
 
         Fazpass.instance.init(this, PUBLIC_KEY_ASSET_FILENAME)
 
-        val text = findViewById<TextView>(R.id.ek_text)
-        val button = findViewById<Button>(R.id.button)
-        button.setOnClickListener {
-            Fazpass.instance.generateMeta(this) {
-                text.text = it
-            }
+        val infoView = findViewById<LinearLayout>(R.id.ma_info_view)
+
+        val reqPermissionBtn = findViewById<Button>(R.id.ma_reqpermission_btn)
+        reqPermissionBtn.setOnClickListener {
+            Fazpass.instance.requestPermissions(this)
         }
 
-        Fazpass.instance.requestPermissions(this)
+        val genMetaBtn = findViewById<Button>(R.id.ma_genmeta_btn)
+        genMetaBtn.setOnClickListener {
+            infoView.removeAllViews()
+
+            Fazpass.instance.generateMeta(this) { meta ->
+                infoView.addView(EntryView(this).apply {
+                    name = "Generated Meta"
+                    value = meta
+                })
+            }
+        }
     }
 }

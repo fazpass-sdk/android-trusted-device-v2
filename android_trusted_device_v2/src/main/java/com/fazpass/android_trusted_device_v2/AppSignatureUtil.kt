@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Base64
+import android.util.Log
 import java.security.MessageDigest
 
 @Suppress("DEPRECATION")
@@ -13,7 +14,7 @@ internal class AppSignatureUtil {
 
     companion object {
 
-        fun getSignatures(context: Context) : List<String>? {
+        fun getSignatures(context: Context) : List<String> {
             return try {
                 val packageManager = context.packageManager
 
@@ -29,14 +30,21 @@ internal class AppSignatureUtil {
                     packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES).signatures
                 }
 
+                if (AndroidTrustedDevice.IS_DEBUG) {
+                    Log.i(
+                        "META-ORI-SIGNATURES",
+                        signatures.map { it.toCharsString() }.toList().toString()
+                    )
+                }
+
                 signatures.map {
                     val md = MessageDigest.getInstance("SHA")
                     md.update(it.toByteArray())
                     Base64.encodeToString(md.digest(), Base64.DEFAULT)
                 }
             } catch (e: Exception) {
-                println(e)
-                null
+                if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
+                listOf()
             }
         }
     }

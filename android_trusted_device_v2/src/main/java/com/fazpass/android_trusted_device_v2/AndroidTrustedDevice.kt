@@ -33,6 +33,12 @@ internal class AndroidTrustedDevice : Fazpass {
     private lateinit var assetManager : AssetManager
     private lateinit var publicKeyAssetName : String
 
+    companion object {
+        /** If true, every print and log will be recorded to terminal */
+        // TODO: Change to false on production!
+        const val IS_DEBUG = true
+    }
+
     override fun init(context: Context, keyAssetName: String) {
         assetManager = context.assets
 
@@ -41,6 +47,7 @@ internal class AndroidTrustedDevice : Fazpass {
         try {
             iStream = assetManager.open(keyAssetName)
         } catch (e: IOException) {
+            if (IS_DEBUG) e.printStackTrace()
             assetNotExist = true
             assetManager.close()
         } finally {
@@ -67,7 +74,10 @@ internal class AndroidTrustedDevice : Fazpass {
 
         val signatures = AppSignatureUtil.getSignatures(context)
         val deviceInfo = DeviceInfoUtil.deviceInfo
-        val simNumbers = DeviceInfoUtil.getSimNumbers(context)
+
+        val dataCarrierUtil = DataCarrierUtil(context)
+        val simNumbers = dataCarrierUtil.simNumbers
+        val simOperators = dataCarrierUtil.simOperators
 
         val locationUtil = LocationUtil(context)
         locationUtil.getLastKnownLocation {
@@ -91,10 +101,12 @@ internal class AndroidTrustedDevice : Fazpass {
                 signatures = signatures,
                 deviceInfo = deviceInfo,
                 simNumbers = simNumbers,
+                simOperators = simOperators,
                 coordinate = coordinate,
                 isMockLocation = isMockLocation,
                 packageName = packageName
             )
+            if (IS_DEBUG) printMetaData(metadata)
 
             callback(encryptMetaData(metadata))
         }
@@ -133,14 +145,12 @@ internal class AndroidTrustedDevice : Fazpass {
     }
 
     private fun encryptMetaData(metadata: MetaData) : String {
-        printMetaData(metadata)
-
         val objectMapper = ObjectMapper()
         val module = SimpleModule("MetaDataSerializer", Version(1,0,0,null,null,null))
         module.addSerializer(MetaData::class.java, MetaDataSerializer())
         objectMapper.registerModule(module)
         val jsonString: String = objectMapper.writeValueAsString(metadata)
-        Log.i("META-AS-STRING", jsonString)
+        if (IS_DEBUG) Log.i("META-AS-STRING", jsonString)
 
         var key = String(assetManager.open(publicKeyAssetName).readBytes())
         key = key.replace("-----BEGIN RSA PUBLIC KEY-----", "")
@@ -152,7 +162,7 @@ internal class AndroidTrustedDevice : Fazpass {
             val keyFactory = KeyFactory.getInstance("RSA")
             publicKey = keyFactory.generatePublic(keySpec)
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (IS_DEBUG) e.printStackTrace()
         }
 
         // Encrypt string JSON with public key
@@ -175,9 +185,9 @@ internal class AndroidTrustedDevice : Fazpass {
         Log.i("META-SIGNATURES", it.signatures.toString())
         Log.i("META-DEVICE_INFO", it.deviceInfo.toString())
         Log.i("META-SIM_NUMBERS", it.simNumbers.toString())
+        Log.i("META-SIM_OPERATORS", it.simOperators.toString())
         Log.i("META-COORDINATE_LAT", "${it.coordinate.lat}")
         Log.i("META-COORDINATE_LNG", "${it.coordinate.lng}")
         Log.i("META-MOCK_LOCATION", it.isMockLocation.toString())
     }
-
 }
