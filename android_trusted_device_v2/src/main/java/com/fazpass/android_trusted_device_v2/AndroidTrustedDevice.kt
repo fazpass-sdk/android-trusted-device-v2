@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.AssetManager
-import android.location.Location
 import android.os.Build
 import android.util.Base64
 import android.util.Log
@@ -25,6 +24,7 @@ import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
+import kotlin.math.min
 
 
 internal class AndroidTrustedDevice : Fazpass {
@@ -65,13 +65,13 @@ internal class AndroidTrustedDevice : Fazpass {
 
         val platform = "android"
         val packageName = context.packageName
+        val isDebuggable = 0 != context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE
+
         val isRooted = RootUtil.isDeviceRooted(context)
         val isEmulator = EmulatorUtil.isEmulator
         val isVpn = ConnectionUtil.isVpnConnectionAvailable(context)
         val isCloned = CloningUtil(context).isAppCloned
         val isScreenMirroring = ScreenMirroringUtil(context).isScreenMirroring
-        val isDebuggable = 0 != context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE
-
         val signatures = AppSignatureUtil.getSignatures(context)
         val deviceInfo = DeviceInfoUtil.deviceInfo
 
@@ -79,36 +79,40 @@ internal class AndroidTrustedDevice : Fazpass {
         val simNumbers = dataCarrierUtil.simNumbers
         val simOperators = dataCarrierUtil.simOperators
 
-        val locationUtil = LocationUtil(context)
-        locationUtil.getLastKnownLocation {
-            val location : Location? = it
-            val isMockLocation : Boolean = locationUtil.isMockLocationOn(it)
-            val coordinate = if (location != null) {
-                Coordinate(location.latitude, location.longitude)
-            }
-            else {
-                Coordinate(0.0,0.0)
-            }
+        IPAddressUtil.getIPAddress { ipAddress ->
 
-            val metadata = MetaData(
-                platform = platform,
-                isRooted = isRooted,
-                isEmulator = isEmulator,
-                isVpn = isVpn,
-                isCloned = isCloned,
-                isScreenMirroring = isScreenMirroring,
-                isDebuggable = isDebuggable,
-                signatures = signatures,
-                deviceInfo = deviceInfo,
-                simNumbers = simNumbers,
-                simOperators = simOperators,
-                coordinate = coordinate,
-                isMockLocation = isMockLocation,
-                packageName = packageName
-            )
-            if (IS_DEBUG) printMetaData(metadata)
+            val locationUtil = LocationUtil(context)
+            locationUtil.getLastKnownLocation { location ->
 
-            callback(encryptMetaData(metadata))
+                val isMockLocation : Boolean = locationUtil.isMockLocationOn(location)
+                val coordinate = if (location != null) {
+                    Coordinate(location.latitude, location.longitude)
+                }
+                else {
+                    Coordinate(0.0,0.0)
+                }
+
+                val metadata = MetaData(
+                    platform = platform,
+                    isRooted = isRooted,
+                    isEmulator = isEmulator,
+                    isVpn = isVpn,
+                    isCloned = isCloned,
+                    isScreenMirroring = isScreenMirroring,
+                    isDebuggable = isDebuggable,
+                    signatures = signatures,
+                    deviceInfo = deviceInfo,
+                    simNumbers = simNumbers,
+                    simOperators = simOperators,
+                    coordinate = coordinate,
+                    isMockLocation = isMockLocation,
+                    packageName = packageName,
+                    ipAddress = ipAddress,
+                )
+                if (IS_DEBUG) printMetaData(metadata)
+
+                callback(encryptMetaData(metadata))
+            }
         }
     }
 
@@ -174,20 +178,12 @@ internal class AndroidTrustedDevice : Fazpass {
         return Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
     }
 
-    private fun printMetaData(it: MetaData) {
-        Log.i("META-PLATFORM", it.platform)
-        Log.i("META-ROOTED", it.isRooted.toString())
-        Log.i("META-EMULATOR", it.isEmulator.toString())
-        Log.i("META-VPN", it.isVpn.toString())
-        Log.i("META-CLONED", it.isCloned.toString())
-        Log.i("META-SCREEN_MIRRORING", it.isScreenMirroring.toString())
-        Log.i("META-DEBUGGABLE", it.isDebuggable.toString())
-        Log.i("META-SIGNATURES", it.signatures.toString())
-        Log.i("META-DEVICE_INFO", it.deviceInfo.toString())
-        Log.i("META-SIM_NUMBERS", it.simNumbers.toString())
-        Log.i("META-SIM_OPERATORS", it.simOperators.toString())
-        Log.i("META-COORDINATE_LAT", "${it.coordinate.lat}")
-        Log.i("META-COORDINATE_LNG", "${it.coordinate.lng}")
-        Log.i("META-MOCK_LOCATION", it.isMockLocation.toString())
+    private fun printMetaData(metaData: MetaData) {
+        metaData::class.java.declaredFields.forEach {
+            it.isAccessible = true
+            Log.i(
+                "META-${it.name.uppercase().substring(0..min(18, it.name.length-1))}",
+                it.get(metaData)?.toString() ?: "")
+        }
     }
 }

@@ -15,4 +15,5 @@ data class MetaData(
     val coordinate : Coordinate,
     val isMockLocation : Boolean,
     val packageName : String,
+    val ipAddress: String,
 )

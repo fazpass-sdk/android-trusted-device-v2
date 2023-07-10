@@ -7,6 +7,31 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer
 class MetaDataSerializer @JvmOverloads constructor(t: Class<MetaData>? = null)
     : StdSerializer<MetaData>(t) {
 
+    /**
+     * JSON RESULT:
+     * {
+     *  "platform":"android/ios",
+     *  "is_rooted":true/false,
+     *  "is_emulator":true/false,
+     *  "is_gps_spoof":true/false,
+     *  "signature":["signature_key","signature_key"],
+     *  "is_vpn":true/false,
+     *  "is_clone_app":true/false,
+     *  "is_screen_sharing":true/false,
+     *  "is_debug":true/false,
+     *  "application":"com.fazpass.android_trusted_device_v2_app"
+     *  "device_id":{
+     *      "name":"Samsung",
+     *      "os_version":"Q",
+     *      "series":"A30",
+     *      "cpu":"Mediatek"
+     *  },
+     *  "sim_serial":["abcde12345","zyxwv9875"],
+     *  "sim_operator":["indosat","tsel"],
+     *  "geolocation":{lat:"2.90887363", lng:"4.9099876"},
+     *  "client_ip":"127.0.0.1"
+     * }
+     */
     override fun serialize(value: MetaData?, gen: JsonGenerator?, provider: SerializerProvider?) {
         if (value != null && gen != null && provider != null) {
             gen.apply {
@@ -46,6 +71,8 @@ class MetaDataSerializer @JvmOverloads constructor(t: Class<MetaData>? = null)
                 writeStringField("lat", value.coordinate.lat.toString())
                 writeStringField("lng", value.coordinate.lng.toString())
                 writeEndObject()
+
+                writeStringField("client_ip", value.ipAddress)
 
                 writeEndObject()
             }
