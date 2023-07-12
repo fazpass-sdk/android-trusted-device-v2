@@ -1,16 +1,10 @@
 package com.fazpass.android_trusted_device_v2
 
-import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.content.res.AssetManager
-import android.os.Build
 import android.util.Base64
 import android.util.Log
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.fasterxml.jackson.core.Version
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
@@ -32,6 +26,9 @@ internal class AndroidTrustedDevice : Fazpass {
     private var isInitialized : Boolean = false
     private lateinit var assetManager : AssetManager
     private lateinit var publicKeyAssetName : String
+
+    private var locationEnabled = false
+    private var simNumbersAndOperatorsEnabled = false
 
     companion object {
         /** If true, every print and log will be recorded to terminal */
@@ -75,23 +72,53 @@ internal class AndroidTrustedDevice : Fazpass {
         val signatures = AppSignatureUtil.getSignatures(context)
         val deviceInfo = DeviceInfoUtil.deviceInfo
 
-        val dataCarrierUtil = DataCarrierUtil(context)
-        val simNumbers = dataCarrierUtil.simNumbers
-        val simOperators = dataCarrierUtil.simOperators
+        val simNumbers: List<String>
+        val simOperators: List<String>
+        if (simNumbersAndOperatorsEnabled) {
+            val dataCarrierUtil = DataCarrierUtil(context)
+            simNumbers = dataCarrierUtil.simNumbers
+            simOperators = dataCarrierUtil.simOperators
+        } else {
+            simNumbers = listOf()
+            simOperators = listOf()
+        }
 
         IPAddressUtil.getIPAddress { ipAddress ->
 
-            val locationUtil = LocationUtil(context)
-            locationUtil.getLastKnownLocation { location ->
+            if (locationEnabled) {
+                val locationUtil = LocationUtil(context)
+                locationUtil.getLastKnownLocation { location ->
 
-                val isMockLocation : Boolean = locationUtil.isMockLocationOn(location)
-                val coordinate = if (location != null) {
-                    Coordinate(location.latitude, location.longitude)
-                }
-                else {
-                    Coordinate(0.0,0.0)
-                }
+                    val isMockLocation : Boolean = locationUtil.isMockLocationOn(location)
+                    val coordinate = if (location != null) {
+                        Coordinate(location.latitude, location.longitude)
+                    }
+                    else {
+                        Coordinate(0.0,0.0)
+                    }
 
+                    val metadata = MetaData(
+                        platform = platform,
+                        isRooted = isRooted,
+                        isEmulator = isEmulator,
+                        isVpn = isVpn,
+                        isCloned = isCloned,
+                        isScreenMirroring = isScreenMirroring,
+                        isDebuggable = isDebuggable,
+                        signatures = signatures,
+                        deviceInfo = deviceInfo,
+                        simNumbers = simNumbers,
+                        simOperators = simOperators,
+                        coordinate = coordinate,
+                        isMockLocation = isMockLocation,
+                        packageName = packageName,
+                        ipAddress = ipAddress,
+                    )
+                    if (IS_DEBUG) printMetaData(metadata)
+
+                    callback(encryptMetaData(metadata))
+                }
+            } else {
                 val metadata = MetaData(
                     platform = platform,
                     isRooted = isRooted,
@@ -104,8 +131,8 @@ internal class AndroidTrustedDevice : Fazpass {
                     deviceInfo = deviceInfo,
                     simNumbers = simNumbers,
                     simOperators = simOperators,
-                    coordinate = coordinate,
-                    isMockLocation = isMockLocation,
+                    coordinate = Coordinate(0.0,0.0),
+                    isMockLocation = false,
                     packageName = packageName,
                     ipAddress = ipAddress,
                 )
@@ -116,36 +143,13 @@ internal class AndroidTrustedDevice : Fazpass {
         }
     }
 
-    override fun requestPermissions(activity: Activity) {
-        val requiredPermissions = ArrayList(
-            listOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.ACCESS_NETWORK_STATE,
-            )
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            requiredPermissions.add(Manifest.permission.READ_PHONE_NUMBERS)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            requiredPermissions.add(Manifest.permission.FOREGROUND_SERVICE)
-        }
-        val deniedPermissions: MutableList<String> = ArrayList()
-        for (permission in requiredPermissions) {
-            if (ContextCompat.checkSelfPermission(
-                    activity,
-                    permission
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                deniedPermissions.add(permission)
+    override fun enableSelected(vararg sensitiveData: SensitiveData) {
+        sensitiveData.forEach {
+            when (it) {
+                SensitiveData.location -> locationEnabled = true
+                SensitiveData.simNumbersAndOperators -> simNumbersAndOperatorsEnabled = true
             }
         }
-        if (deniedPermissions.size != 0) ActivityCompat.requestPermissions(
-            activity,
-            deniedPermissions.toTypedArray(),
-            1
-        )
     }
 
     private fun encryptMetaData(metadata: MetaData) : String {

@@ -1,10 +1,16 @@
 package com.fazpass.android_trusted_device_v2_app
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.fazpass.android_trusted_device_v2.Fazpass
+import com.fazpass.android_trusted_device_v2.SensitiveData
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,7 +28,11 @@ class MainActivity : AppCompatActivity() {
 
         val reqPermissionBtn = findViewById<Button>(R.id.ma_reqpermission_btn)
         reqPermissionBtn.setOnClickListener {
-            Fazpass.instance.requestPermissions(this)
+            Fazpass.instance.enableSelected(
+                SensitiveData.location,
+                SensitiveData.simNumbersAndOperators
+            )
+            requestPermissions()
         }
 
         val genMetaBtn = findViewById<Button>(R.id.ma_genmeta_btn)
@@ -36,5 +46,36 @@ class MainActivity : AppCompatActivity() {
                 })
             }
         }
+    }
+
+    private fun requestPermissions() {
+        val requiredPermissions = ArrayList(
+            listOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.READ_PHONE_STATE,
+            )
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            requiredPermissions.add(Manifest.permission.READ_PHONE_NUMBERS)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            requiredPermissions.add(Manifest.permission.FOREGROUND_SERVICE)
+        }
+        val deniedPermissions: MutableList<String> = ArrayList()
+        for (permission in requiredPermissions) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    permission
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                deniedPermissions.add(permission)
+            }
+        }
+        if (deniedPermissions.size != 0) ActivityCompat.requestPermissions(
+            this,
+            deniedPermissions.toTypedArray(),
+            1
+        )
     }
 }
