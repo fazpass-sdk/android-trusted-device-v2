@@ -179,7 +179,9 @@ internal class AndroidTrustedDevice : Fazpass {
         val encryptedBytes = cipher.doFinal(jsonString.toByteArray(StandardCharsets.UTF_8))
 
         // Encode to base64 string then return
-        return Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
+        val base64Result = Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
+        if (IS_DEBUG) Log.i("META-RESULT", base64Result)
+        return base64Result
     }
 
     private fun printMetaData(metaData: MetaData) {
