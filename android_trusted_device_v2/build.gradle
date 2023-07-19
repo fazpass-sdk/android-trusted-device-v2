@@ -29,10 +29,15 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    publishing {
+        singleVariant('release') {
+            withSourcesJar()
+        }
+    }
 }
 
 def getVersionName = { ->
-    return "1.0.0"
+    return "0.0.1"
 }
 
 def getArtifactId = { ->
