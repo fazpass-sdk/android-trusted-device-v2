@@ -33,7 +33,7 @@ internal class AndroidTrustedDevice : Fazpass {
     companion object {
         /** If true, every print and log will be recorded to terminal */
         // TODO: Change to false on production!
-        const val IS_DEBUG = true
+        const val IS_DEBUG = false
     }
 
     override fun init(context: Context, keyAssetName: String) {

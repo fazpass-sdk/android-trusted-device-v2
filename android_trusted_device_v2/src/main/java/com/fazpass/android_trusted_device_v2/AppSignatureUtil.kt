@@ -40,7 +40,7 @@ internal class AppSignatureUtil {
                 signatures.map {
                     val md = MessageDigest.getInstance("SHA")
                     md.update(it.toByteArray())
-                    Base64.encodeToString(md.digest(), Base64.DEFAULT)
+                    Base64.encodeToString(md.digest(), Base64.NO_WRAP)
                 }
             } catch (e: Exception) {
                 if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()

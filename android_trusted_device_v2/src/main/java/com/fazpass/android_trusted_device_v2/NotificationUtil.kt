@@ -31,10 +31,12 @@ internal class NotificationUtil(private val context: Context) {
 
     val requestLocationNotification : Notification
         get() {
-            val title = "Requesting location..."
+            val title = "Requesting Location..."
+            val text = "Make sure you have internet connection and turned on location service."
 
             return createNotificationBuilder()
                 .setContentTitle(title)
+                .setContentText(text)
                 .build()
         }
 

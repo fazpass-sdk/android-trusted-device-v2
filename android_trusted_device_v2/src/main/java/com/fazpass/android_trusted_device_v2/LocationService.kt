@@ -63,7 +63,5 @@ internal class LocationService : Service() {
         fun getService(): LocationService = this@LocationService
     }
 
-    override fun onBind(intent: Intent): IBinder {
-        return binder
-    }
+    override fun onBind(intent: Intent): IBinder = binder
 }

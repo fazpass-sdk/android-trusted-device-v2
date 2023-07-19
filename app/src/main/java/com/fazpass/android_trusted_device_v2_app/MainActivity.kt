@@ -15,7 +15,7 @@ import com.fazpass.android_trusted_device_v2.SensitiveData
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        private const val PUBLIC_KEY_ASSET_FILENAME = "myPublicKey.pub"
+        private const val PUBLIC_KEY_ASSET_FILENAME = "my_public_key.pub"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

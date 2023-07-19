@@ -28,7 +28,7 @@ class MetaDataSerializer @JvmOverloads constructor(t: Class<MetaData>? = null)
      *  },
      *  "sim_serial":["abcde12345","zyxwv9875"],
      *  "sim_operator":["indosat","tsel"],
-     *  "geolocation":{lat:"2.90887363", lng:"4.9099876"},
+     *  "geolocation":{"lat":"2.90887363", "lng":"4.9099876"},
      *  "client_ip":"127.0.0.1"
      * }
      */
