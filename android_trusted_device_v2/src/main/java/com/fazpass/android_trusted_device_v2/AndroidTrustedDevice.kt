@@ -5,9 +5,6 @@ import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
 import android.util.Base64
 import android.util.Log
-import com.fasterxml.jackson.core.Version
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fazpass.android_trusted_device_v2.`object`.Coordinate
 import com.fazpass.android_trusted_device_v2.`object`.MetaData
 import com.fazpass.android_trusted_device_v2.`object`.MetaDataSerializer
@@ -153,11 +150,7 @@ internal class AndroidTrustedDevice : Fazpass {
     }
 
     private fun encryptMetaData(metadata: MetaData) : String {
-        val objectMapper = ObjectMapper()
-        val module = SimpleModule("MetaDataSerializer", Version(1,0,0,null,null,null))
-        module.addSerializer(MetaData::class.java, MetaDataSerializer())
-        objectMapper.registerModule(module)
-        val jsonString: String = objectMapper.writeValueAsString(metadata)
+        val jsonString: String = MetaDataSerializer(metadata).result
         if (IS_DEBUG) Log.i("META-AS-STRING", jsonString)
 
         var key = String(assetManager.open(publicKeyAssetName).readBytes())
