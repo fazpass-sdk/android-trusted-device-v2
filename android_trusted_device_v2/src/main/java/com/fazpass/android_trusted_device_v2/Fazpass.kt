@@ -10,12 +10,13 @@ interface Fazpass {
 
     /**
      * Mandatory function which you have to call before calling any Fazpass function.
-     * Not doing so might result in unexpected thrown exception.
+     * Not doing so might result in unexpected thrown exception. For your public & private keypair which you
+     * get after contacting fazpass, put them in your assets folder. Then write their name with it's extension.
      * @param context Activity context
-     * @param keyAssetName Your *.pub public key file name which you put on your src 'assets' folder.
-     * Assuming your public key file name is 'my_public_key.pub', then write the name as it is
+     * @param publicKeyAssetName Your public key file name which you put on your src 'assets' folder. (Example: "public_key.pub")
+     * @param privateKeyAssetName Your private key file name which you put on your src 'assets' folder. (Example: "private_key.key")
      */
-    fun init(context: Context, keyAssetName: String)
+    fun init(context: Context, publicKeyAssetName: String, privateKeyAssetName: String)
 
     /**
      * Collect specific information and generate meta data from it as Base64 string.
@@ -35,4 +36,6 @@ interface Fazpass {
      * @param sensitiveData Any sensitive data you want to enable
      */
     fun enableSelected(vararg sensitiveData: SensitiveData)
+
+    fun getFazpassId(response: String) : String
 }
