@@ -117,7 +117,7 @@ internal class EmulatorUtil {
                     ) rating += 10
                 }
             } catch (e: Exception) {
-                if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
+                if (Fazpass.IS_DEBUG) e.printStackTrace()
             }
             try {
                 val sharedFolder = File(
@@ -132,7 +132,7 @@ internal class EmulatorUtil {
                     rating += 10
                 }
             } catch (e: Exception) {
-                if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
+                if (Fazpass.IS_DEBUG) e.printStackTrace()
             }
 
             return rating > 3

@@ -49,7 +49,10 @@ class MainActivity : AppCompatActivity() {
             infoView.removeAllViews()
             fazpassIdIsShown = false
 
-            Fazpass.instance.generateMeta(this) { onMetaGenerated(it) }
+            Fazpass.instance.generateMeta(this) { meta, e ->
+                e?.printStackTrace()
+                if (e == null) onMetaGenerated(meta)
+            }
         }
     }
 

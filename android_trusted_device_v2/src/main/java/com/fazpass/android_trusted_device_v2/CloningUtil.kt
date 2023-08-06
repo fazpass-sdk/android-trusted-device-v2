@@ -20,7 +20,7 @@ internal class CloningUtil(private val context: Context) {
     val isAppCloned: Boolean
         get() {
             val path: String = context.filesDir.path
-            if (AndroidTrustedDevice.IS_DEBUG) Log.i("FILES-DIR-PATH", path)
+            if (Fazpass.IS_DEBUG) Log.i("FILES-DIR-PATH", path)
             return hasDualAppIdOnPath(path)
                     || isAccountIndexMoreThanMax(path)
                     || hasAnotherPackageOnPath(path)

@@ -30,7 +30,7 @@ internal class DeviceInfoUtil {
                     map.contains("cpu implementer") -> cpuModel = map["cpu implementer"]
                 }
             } catch (e: Exception) {
-                if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
+                if (Fazpass.IS_DEBUG) e.printStackTrace()
             }
 
             return cpuModel ?: Build.SUPPORTED_ABIS[0]

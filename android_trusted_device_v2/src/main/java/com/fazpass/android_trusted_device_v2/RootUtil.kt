@@ -9,7 +9,7 @@ internal class RootUtil {
 
         fun isDeviceRooted(context: Context): Boolean {
             val rootBeer = RootBeer(context)
-            rootBeer.setLogging(AndroidTrustedDevice.IS_DEBUG)
+            rootBeer.setLogging(Fazpass.IS_DEBUG)
             return rootBeer.isRooted
         }
     }

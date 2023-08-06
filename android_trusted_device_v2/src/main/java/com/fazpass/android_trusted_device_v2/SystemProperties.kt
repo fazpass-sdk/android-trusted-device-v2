@@ -17,7 +17,7 @@ internal object SystemProperties {
             }
             return getPropMethod!!.invoke(null, propName, defaultResult) as String? ?: defaultResult
         } catch (e: Exception) {
-            if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
+            if (Fazpass.IS_DEBUG) e.printStackTrace()
             getPropMethod = null
             failedUsingReflection = true
         }
@@ -27,7 +27,7 @@ internal object SystemProperties {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             return reader.readLine()
         } catch (e: IOException) {
-            if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
+            if (Fazpass.IS_DEBUG) e.printStackTrace()
         } finally {
             process?.destroy()
         }

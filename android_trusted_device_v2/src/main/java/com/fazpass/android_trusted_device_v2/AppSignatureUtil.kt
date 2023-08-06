@@ -30,7 +30,7 @@ internal class AppSignatureUtil {
                     packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES).signatures
                 }
 
-                if (AndroidTrustedDevice.IS_DEBUG) {
+                if (Fazpass.IS_DEBUG) {
                     Log.i(
                         "META-ORI-SIGNATURES",
                         signatures.map { it.toCharsString() }.toList().toString()
@@ -43,7 +43,7 @@ internal class AppSignatureUtil {
                     Base64.encodeToString(md.digest(), Base64.NO_WRAP)
                 }
             } catch (e: Exception) {
-                if (AndroidTrustedDevice.IS_DEBUG) e.printStackTrace()
+                if (Fazpass.IS_DEBUG) e.printStackTrace()
                 listOf()
             }
         }
