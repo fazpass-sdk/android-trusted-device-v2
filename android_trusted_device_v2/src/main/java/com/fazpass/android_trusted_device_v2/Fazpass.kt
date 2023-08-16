@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
 import android.util.Base64
-import android.util.JsonReader
 import android.util.Log
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -19,9 +18,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.security.KeyFactory
-import java.security.PrivateKey
 import java.security.PublicKey
-import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 import kotlin.math.min
@@ -31,7 +28,6 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     private var isInitialized : Boolean = false
     private lateinit var assetManager : AssetManager
     private lateinit var publicKeyAssetName : String
-    private lateinit var privateKeyAssetName : String
 
     private var locationEnabled = false
     private var simNumbersAndOperatorsEnabled = false
@@ -46,27 +42,23 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         val instance : Fazpass by lazy { Fazpass() }
     }
 
-    override fun init(context: Context, publicKeyAssetName: String, privateKeyAssetName: String) {
+    override fun init(context: Context, publicKeyAssetName: String) {
         assetManager = context.assets
 
         var assetNotExist = false
         var iSPubKey : InputStream? = null
-        var iSPriKey : InputStream? = null
         try {
             iSPubKey = assetManager.open(publicKeyAssetName)
-            iSPriKey = assetManager.open(privateKeyAssetName)
         } catch (e: IOException) {
             if (IS_DEBUG) e.printStackTrace()
             assetNotExist = true
             assetManager.close()
         } finally {
             iSPubKey?.close()
-            iSPriKey?.close()
         }
         if (assetNotExist) throw Exception("Key files doesn't exist in the 'assets' directory!")
 
         this.publicKeyAssetName = publicKeyAssetName
-        this.privateKeyAssetName = privateKeyAssetName
         NotificationUtil(context).initNotificationChannel()
         this.isInitialized = true
     }
@@ -128,42 +120,6 @@ class Fazpass private constructor(): AndroidTrustedDevice {
                 SensitiveData.simNumbersAndOperators -> simNumbersAndOperatorsEnabled = true
             }
         }
-    }
-
-    override fun getFazpassId(response: String): String {
-        var meta = ""
-        val responseReader = JsonReader(response.reader())
-        responseReader.beginObject()
-        while (responseReader.hasNext()) {
-            val key = responseReader.nextName()
-            if (key == "data") {
-                responseReader.beginObject()
-                continue
-            }
-            if (key == "meta") {
-                meta = responseReader.nextString()
-                break
-            }
-            responseReader.skipValue()
-        }
-        responseReader.close()
-
-        val decryptedMetaData = decryptMetaData(meta)
-        val reader = JsonReader(decryptedMetaData.reader())
-        reader.beginObject()
-
-        var fazpassId = ""
-        while (reader.hasNext()) {
-            val key = reader.nextName()
-            if (key == "fazpass_id") {
-                fazpassId = reader.nextString()
-                break
-            }
-            reader.skipValue()
-        }
-        reader.close()
-
-        return fazpassId
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -272,30 +228,6 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         val base64Result = Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
         if (IS_DEBUG) Log.i("META-RESULT", base64Result)
         return base64Result
-    }
-
-    private fun decryptMetaData(encryptedMetaData: String): String {
-        var key = String(assetManager.open(privateKeyAssetName).readBytes())
-        key = key.replace("-----BEGIN RSA PRIVATE KEY-----", "")
-            .replace("-----END RSA PRIVATE KEY-----", "")
-            .replace("\n", "").replace("\r", "")
-        val privateKey: PrivateKey?
-        try {
-            val keySpec = PKCS8EncodedKeySpec(Base64.decode(key, Base64.DEFAULT))
-            val keyFactory = KeyFactory.getInstance("RSA")
-            privateKey = keyFactory.generatePrivate(keySpec)
-        } catch (e: Exception) {
-            if (IS_DEBUG)  e.printStackTrace()
-            throw e
-        }
-
-        val decryptedMetaData = Base64.decode(encryptedMetaData, Base64.DEFAULT)
-
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.DECRYPT_MODE, privateKey)
-        val decryptedBytes = cipher.doFinal(decryptedMetaData)
-
-        return String(decryptedBytes, StandardCharsets.UTF_8)
     }
 
     private fun printMetaData(metaData: MetaData) {

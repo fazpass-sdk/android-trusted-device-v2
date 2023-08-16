@@ -11,9 +11,8 @@ internal interface AndroidTrustedDevice {
      * get after contacting fazpass, put them in your assets folder. Then write their name with it's extension.
      * @param context Activity context
      * @param publicKeyAssetName Your public key file name which you put on your src 'assets' folder. (Example: "public_key.pub")
-     * @param privateKeyAssetName Your private key file name which you put on your src 'assets' folder. (Example: "private_key.key")
      */
-    fun init(context: Context, publicKeyAssetName: String, privateKeyAssetName: String)
+    fun init(context: Context, publicKeyAssetName: String)
 
     /**
      * Collect specific information and generate meta data from it as Base64 string.
@@ -34,11 +33,4 @@ internal interface AndroidTrustedDevice {
      * @param sensitiveData Any sensitive data you want to enable
      */
     fun enableSelected(vararg sensitiveData: SensitiveData)
-
-    /**
-     * This method will help you to collect fazpass id from fazpass trusted device rest APIs check and enroll. Simply
-     * put the response in the [response] parameter.
-     * @param response String response from check or enroll
-     */
-    fun getFazpassId(response: String) : String
 }
