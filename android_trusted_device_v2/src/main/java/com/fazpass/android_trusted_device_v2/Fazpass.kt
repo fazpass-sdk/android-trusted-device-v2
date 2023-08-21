@@ -187,7 +187,6 @@ class Fazpass private constructor(): AndroidTrustedDevice {
 
             override fun onAuthenticationFailed() {
                 super.onAuthenticationFailed()
-                callback(Exception("Biometric unauthorized"))
             }
         }
         val executor = ContextCompat.getMainExecutor(ctx)
