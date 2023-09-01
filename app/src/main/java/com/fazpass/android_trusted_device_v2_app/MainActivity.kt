@@ -56,9 +56,11 @@ class MainActivity : AppCompatActivity() {
             infoView.removeAllViews()
             fazpassIdIsShown = false
 
-            Fazpass.instance.generateMeta(this) { meta, e ->
-                e?.printStackTrace()
-                if (e == null) onMetaGenerated(meta)
+            Fazpass.instance.generateMeta(this) { meta, exception ->
+                when (exception) {
+                    null -> onMetaGenerated(meta)
+                    else -> exception.printStackTrace()
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 package com.fazpass.android_trusted_device_v2.`object`
 
-class MetaDataSerializer(value: MetaData) : CustomSerializer() {
+internal class MetaDataSerializer(value: MetaData) : CustomSerializer() {
 
     /**
      * JSON RESULT:

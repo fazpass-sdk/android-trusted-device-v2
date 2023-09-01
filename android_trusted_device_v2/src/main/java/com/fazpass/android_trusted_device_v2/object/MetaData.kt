@@ -1,6 +1,6 @@
 package com.fazpass.android_trusted_device_v2.`object`
 
-data class MetaData(
+internal data class MetaData(
     val platform : String,
     val isRooted : Boolean,
     val isEmulator : Boolean,

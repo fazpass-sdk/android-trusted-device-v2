@@ -8,25 +8,22 @@ import java.util.Scanner
 
 internal class IPAddressUtil {
 
-    companion object {
+    fun getIPAddress(callback: (String) -> Unit) {
+        Thread {
+            var s: Scanner? = null
+            var ip = ""
+            try {
+                s = Scanner(
+                    URL("https://api.ipify.org").openStream(),
+                    "UTF-8"
+                ).useDelimiter("\\A")
+                ip = s.next()
+            } catch (ignored: IOException) {
+            } finally {
+                s?.close()
+            }
 
-        fun getIPAddress(callback: (String) -> Unit) {
-            Thread {
-                var s: Scanner? = null
-                var ip = ""
-                try {
-                    s = Scanner(
-                        URL("https://api.ipify.org").openStream(),
-                        "UTF-8"
-                    ).useDelimiter("\\A")
-                    ip = s.next()
-                } catch (ignored: IOException) {
-                } finally {
-                    s?.close()
-                }
-
-                Handler(Looper.getMainLooper()).post { callback(ip) }
-            }.start()
-        }
+            Handler(Looper.getMainLooper()).post { callback(ip) }
+        }.start()
     }
 }

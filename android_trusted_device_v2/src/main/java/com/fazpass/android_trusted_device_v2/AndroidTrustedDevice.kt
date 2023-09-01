@@ -17,11 +17,11 @@ internal interface AndroidTrustedDevice {
     /**
      * Collect specific information and generate meta data from it as Base64 string.
      * You can use this meta to hit Fazpass API endpoint. Will launch biometric authentication before
-     * generating meta. Result will be empty string if biometric authentication is failed or exception is present.
-     * @param activity Currently active fragment activity or app compat activity
-     * @param callback Will be invoked after meta is ready as Base64 string or exception is produced.
+     * generating meta. Result will be empty string if exception is present.
+     * @param activity Currently active fragment activity or app compat activity.
+     * @param callback Will be invoked when meta is ready as Base64 string or exception is produced.
      */
-    fun generateMeta(activity: Activity, callback: (String, Exception?) -> Unit)
+    fun generateMeta(activity: Activity, callback: (String, FazpassException?) -> Unit)
 
     /**
      * Sensitive data requires the user to grant certain permissions so it could be collected.

@@ -1,6 +1,6 @@
 package com.fazpass.android_trusted_device_v2.`object`
 
-open class CustomSerializer {
+internal open class CustomSerializer {
 
     var result = ""
         private set

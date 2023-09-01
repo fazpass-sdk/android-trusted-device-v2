@@ -3,14 +3,12 @@ package com.fazpass.android_trusted_device_v2
 import android.content.Context
 import com.scottyab.rootbeer.RootBeer
 
-internal class RootUtil {
+internal class RootUtil(private val context: Context) {
 
-    companion object {
-
-        fun isDeviceRooted(context: Context): Boolean {
+    val isDeviceRooted: Boolean
+        get() {
             val rootBeer = RootBeer(context)
             rootBeer.setLogging(Fazpass.IS_DEBUG)
             return rootBeer.isRooted
         }
-    }
 }

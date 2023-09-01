@@ -1,12 +1,16 @@
 package com.fazpass.android_trusted_device_v2
 
 import android.app.Activity
+import android.app.KeyguardManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
+import android.os.Build
 import android.util.Base64
 import android.util.Log
 import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -43,28 +47,14 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     }
 
     override fun init(context: Context, publicKeyAssetName: String) {
-        assetManager = context.assets
-
-        var assetNotExist = false
-        var iSPubKey : InputStream? = null
-        try {
-            iSPubKey = assetManager.open(publicKeyAssetName)
-        } catch (e: IOException) {
-            if (IS_DEBUG) e.printStackTrace()
-            assetNotExist = true
-            assetManager.close()
-        } finally {
-            iSPubKey?.close()
-        }
-        if (assetNotExist) throw Exception("Key files doesn't exist in the 'assets' directory!")
-
         this.publicKeyAssetName = publicKeyAssetName
         NotificationUtil(context).initNotificationChannel()
         this.isInitialized = true
     }
 
-    override fun generateMeta(activity: Activity, callback: (String, Exception?) -> Unit) {
-        if (!isInitialized) throw Exception("Fazpass init has to be called first!")
+    override fun generateMeta(activity: Activity, callback: (String, FazpassException?) -> Unit) {
+        if (!isInitialized) throw UninitializedException()
+        this.assetManager = activity.assets
 
         openBiometric(activity) { biometricErr ->
             if (biometricErr != null) {
@@ -77,19 +67,19 @@ class Fazpass private constructor(): AndroidTrustedDevice {
             tempMetaMapper!!["platform"] = "android"
             tempMetaMapper!!["packageName"] = activity.packageName
             tempMetaMapper!!["isDebuggable"] = 0 != activity.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE
-            tempMetaMapper!!["isRooted"] = RootUtil.isDeviceRooted(activity)
-            tempMetaMapper!!["isEmulator"] = EmulatorUtil.isEmulator
-            tempMetaMapper!!["isVpn"] = ConnectionUtil.isVpnConnectionAvailable(activity)
+            tempMetaMapper!!["isRooted"] = RootUtil(activity).isDeviceRooted
+            tempMetaMapper!!["isEmulator"] = EmulatorUtil().isEmulator
+            tempMetaMapper!!["isVpn"] = ConnectionUtil(activity).isVpnConnectionAvailable
             tempMetaMapper!!["isCloned"] = CloningUtil(activity).isAppCloned
             tempMetaMapper!!["isScreenMirroring"] = ScreenMirroringUtil(activity).isScreenMirroring
-            tempMetaMapper!!["signatures"] = AppSignatureUtil.getSignatures(activity)
-            tempMetaMapper!!["deviceInfo"] = DeviceInfoUtil.deviceInfo
+            tempMetaMapper!!["signatures"] = AppSignatureUtil(activity).getSignatures
+            tempMetaMapper!!["deviceInfo"] = DeviceInfoUtil().deviceInfo
 
             val dataCarrierUtil = if (simNumbersAndOperatorsEnabled) DataCarrierUtil(activity) else null
             tempMetaMapper!!["simNumbers"] = dataCarrierUtil?.simNumbers ?: listOf<String>()
             tempMetaMapper!!["simOperators"] = dataCarrierUtil?.simOperators ?: listOf<String>()
 
-            IPAddressUtil.getIPAddress { ipAddress ->
+            IPAddressUtil().getIPAddress { ipAddress ->
                 tempMetaMapper!!["ipAddress"] = ipAddress
                 finalizeGenerateMeta(callback)
             }
@@ -123,7 +113,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun finalizeGenerateMeta(callback: (String, Exception?) -> Unit) {
+    private fun finalizeGenerateMeta(callback: (String, FazpassException?) -> Unit) {
         if (tempMetaMapper == null) return
         val platform = tempMetaMapper!!["platform"]
         val packageName = tempMetaMapper!!["packageName"]
@@ -166,36 +156,67 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         try {
             val encryptedMetaData = encryptMetaData(metadata)
             callback(encryptedMetaData, null)
-        } catch (e: Exception) {
+        } catch (e: PublicKeyNotExistException) {
             callback("", e)
+        } catch (e: Exception) {
+            callback("", EncryptionException())
         }
 
         tempMetaMapper = null
     }
 
-    private fun openBiometric(ctx: Activity, callback: (Exception?) -> Unit) {
+    private fun openBiometric(ctx: Activity, callback: (FazpassException?) -> Unit) {
+        val authenticators = DEVICE_CREDENTIAL or BIOMETRIC_WEAK
+
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+            val keyguardManager = ctx.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+            if (!keyguardManager.isDeviceSecure) {
+                callback(BiometricNoneEnrolledError())
+                return
+            }
+        }
+
+        val biometricManager = BiometricManager.from(ctx)
+        when (biometricManager.canAuthenticate(authenticators)) {
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                callback(BiometricNoneEnrolledError())
+                return
+            }
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                callback(BiometricHardwareUnavailableError())
+                return
+            }
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                callback(BiometricNoHardwareError())
+                return
+            }
+            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> {
+                callback(BiometricSecurityUpdateRequiredError())
+                return
+            }
+            BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED -> {
+                callback(BiometricUnsupportedError())
+                return
+            }
+            else -> {}
+        }
+
         val listener = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 super.onAuthenticationError(errorCode, errString)
-                callback(Exception(errString.toString()))
+                callback(BiometricAuthError(errString.toString()))
             }
 
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                 super.onAuthenticationSucceeded(result)
                 callback(null)
             }
-
-            override fun onAuthenticationFailed() {
-                super.onAuthenticationFailed()
-            }
         }
         val executor = ContextCompat.getMainExecutor(ctx)
         val biometricPrompt = BiometricPrompt(ctx as FragmentActivity, executor, listener)
         val promptInfo: BiometricPrompt.PromptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Biometric Required")
-            .setSubtitle("")
-            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-            .setNegativeButtonText("Cancel")
+            .setAllowedAuthenticators(authenticators)
             .build()
         biometricPrompt.authenticate(promptInfo)
     }
@@ -204,7 +225,17 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         val jsonString: String = MetaDataSerializer(metadata).result
         if (IS_DEBUG) Log.i("META-AS-STRING", jsonString)
 
-        var key = String(assetManager.open(publicKeyAssetName).readBytes())
+        var keyInputStream : InputStream? = null
+        try {
+            keyInputStream = assetManager.open(publicKeyAssetName)
+        } catch (e: IOException) {
+            if (IS_DEBUG) e.printStackTrace()
+            assetManager.close()
+        }
+        if (keyInputStream == null) throw PublicKeyNotExistException(publicKeyAssetName)
+
+        var key = String(keyInputStream.readBytes())
+        keyInputStream.close()
         key = key.replace("-----BEGIN RSA PUBLIC KEY-----", "")
             .replace("-----END RSA PUBLIC KEY-----", "")
             .replace("\n", "").replace("\r", "")

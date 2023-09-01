@@ -10,11 +10,10 @@ import java.security.MessageDigest
 
 @Suppress("DEPRECATION")
 @SuppressLint("PackageManagerGetSignatures")
-internal class AppSignatureUtil {
+internal class AppSignatureUtil(private val context: Context) {
 
-    companion object {
-
-        fun getSignatures(context: Context) : List<String> {
+    val getSignatures : List<String>
+        get() {
             return try {
                 val packageManager = context.packageManager
 
@@ -47,5 +46,4 @@ internal class AppSignatureUtil {
                 listOf()
             }
         }
-    }
 }
