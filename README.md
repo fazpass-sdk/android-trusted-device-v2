@@ -11,16 +11,16 @@ Android 23
 1. Add it in your root build.gradle at the end of repositories:
 ```gradle
 allprojects {
-		repositories {
-			...
-			maven { url 'https://jitpack.io' }
-		}
+	repositories {
+		...
+		maven { url 'https://jitpack.io' }
 	}
+}
 ```
 2. Add the dependency:
 ```gradle
 dependencies {
-        implementation 'com.github.fazpass-sdk:android-trusted-device-v2:Tag'
+	implementation 'com.github.fazpass-sdk:android-trusted-device-v2:Tag'
 }
 ```
 3. Sync project with gradle files.
@@ -109,7 +109,7 @@ if user granted the required permissions, otherwise it won't be collected and no
 * Your device mirroring or projecting status.
 * Your app signatures.
 * Your device information (Android version, phone brand, phone type, phone cpu).
-* Your network IP Address.
+* Your network IP Address and vpn status.
 
 ### Sensitive data collected
 #### Your device location (X and Y coordinate, mock location status)
