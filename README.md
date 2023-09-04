@@ -39,7 +39,7 @@ Fazpass.instance.init(this, "YOUR_PUBLIC_KEY_NAME");
 ```
 
 ## Usage
-Call `generateMeta(activity: Activity, callback: (String meta, FazpassException exception) -> Unit)` method to generate meta. This method
+Call `generateMeta(activity: Activity, callback: (String, FazpassException?) -> Unit)` method to generate meta. This method
 collects specific information and generates meta data as Base64 string.
 You can use this meta to hit Fazpass API endpoint. Will launch biometric authentication before
 generating meta. Meta will be empty string if exception is present.
