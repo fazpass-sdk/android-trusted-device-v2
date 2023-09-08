@@ -39,9 +39,12 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     private var tempMetaMapper : HashMap<String, Any>? = null
 
     companion object {
-        /** If true, every print and log will be recorded to terminal */
-        // TODO: Change to false on production!
-        const val IS_DEBUG = false
+        /**
+         * If true, every print and log will be recorded to terminal.
+         *
+         * Change to false on production!
+         */
+        internal const val IS_DEBUG = false
 
         val instance : Fazpass by lazy { Fazpass() }
     }
@@ -53,6 +56,15 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     }
 
     override fun generateMeta(activity: Activity, callback: (String, FazpassException?) -> Unit) {
+        doGenerateMeta(activity) { meta, exception ->
+            if (exception != null) {
+                // TODO: Add error reporter here
+            }
+            callback(meta, exception)
+        }
+    }
+
+    private fun doGenerateMeta(activity: Activity, callback: (String, FazpassException?) -> Unit) {
         if (!isInitialized) throw UninitializedException()
         this.assetManager = activity.assets
 
@@ -182,12 +194,8 @@ class Fazpass private constructor(): AndroidTrustedDevice {
                 callback(BiometricNoneEnrolledError())
                 return
             }
-            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
-                callback(BiometricHardwareUnavailableError())
-                return
-            }
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
-                callback(BiometricNoHardwareError())
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE, BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                callback(BiometricUnavailableError())
                 return
             }
             BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> {

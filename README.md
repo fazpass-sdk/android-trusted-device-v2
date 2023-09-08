@@ -51,8 +51,7 @@ generating meta**. Meta will be empty string if exception is present.
 Fazpass.instance.generateMeta(this) { meta, exception ->
     when (exception) {
         is BiometricAuthError -> TODO()
-        is BiometricHardwareUnavailableError -> TODO()
-        is BiometricNoHardwareError -> TODO()
+        is BiometricUnavailableError -> TODO()
         is BiometricNoneEnrolledError -> TODO()
         is BiometricSecurityUpdateRequiredError -> TODO()
         is BiometricUnsupportedError -> TODO()
@@ -77,10 +76,8 @@ Produced when public key with the name registered in init method doesn't exist i
 Produced when encryption went wrong because you used the wrong public key.
 * BiometricAuthError<br>
 Produced when biometric authentication is finished with an error. (example: User cancelled biometric auth, User failed biometric auth too many times, and many more)
-* BiometricHardwareUnavailableError<br>
-Produced when android can't start biometric authentication because the hardware is unavailable.
-* BiometricNoHardwareError<br>
-Produced when android can't start biometric authentication because there is no suitable hardware.
+* BiometricUnavailableError<br>
+Produced when android can't start biometric authentication because there is no suitable hardware (e.g. no biometric sensor or no keyguard) or the hardware is unavailable.
 * BiometricNoneEnrolledError<br>
 Produced when android can't start biometric authentication because there is no biometric or device credential enrolled.
 * BiometricSecurityUpdateRequiredError<br>

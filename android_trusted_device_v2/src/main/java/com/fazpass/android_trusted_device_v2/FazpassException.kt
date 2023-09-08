@@ -18,12 +18,9 @@ class BiometricNoneEnrolledError
     : FazpassException("User can't authenticate because no biometric " +
         "or device credential is enrolled.")
 
-class BiometricHardwareUnavailableError
-    : FazpassException("User can't authenticate because the hardware is unavailable. " +
-        "Try again later.")
-
-class BiometricNoHardwareError
-    : FazpassException("User can't authenticate because there is no suitable hardware")
+class BiometricUnavailableError
+    : FazpassException("User can't authenticate because there is " +
+        "no suitable hardware (e.g. no biometric sensor or no keyguard) or the hardware is unavailable.")
 
 class BiometricSecurityUpdateRequiredError
     : FazpassException("User can't authenticate because a security vulnerability has " +

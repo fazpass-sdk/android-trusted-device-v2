@@ -7,7 +7,9 @@ internal interface AndroidTrustedDevice {
 
     /**
      * Mandatory function which you have to call before calling any Fazpass function.
-     * Not doing so might result in unexpected thrown exception. For your public & private keypair which you
+     * Not doing so might result in unexpected thrown exception.
+     * Call this method in onCreate method inside your default activity.
+     * For your public & private keypair which you
      * get after contacting fazpass, put them in your assets folder. Then write their name with it's extension.
      * @param context Activity context
      * @param publicKeyAssetName Your public key file name which you put on your src 'assets' folder. (Example: "public_key.pub")
