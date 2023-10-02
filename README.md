@@ -10,22 +10,48 @@ Android 23
 
 ## installation
 
-1. Add it in your root build.gradle at the end of repositories:
+### 1. Add Jitpack repo in your gradle repositories
+
+If your gradle use buildscript syntax, add Jitpack repo in your root-level build.gradle (*project*/build.gradle):
 ```gradle
+buildscript {
+	//...
+}
+
 allprojects {
 	repositories {
-		...
+		// Another repo...
 		maven { url 'https://jitpack.io' }
 	}
 }
 ```
-2. Add the dependency:
+If your gradle use plugin syntax, add Jitpack repo in your settings.gradle (*project*/settings.gradle):
+```gradle
+pluginManagement {
+    repositories {
+        // Another repo...
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        // Another repo...
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+### 2. Add the dependency in your app-level build.gradle (*project*/app/build.gradle)
+
 ```gradle
 dependencies {
+	// Another dependencies...
 	implementation 'com.github.fazpass-sdk:android-trusted-device-v2:Tag'
 }
 ```
-3. Sync project with gradle files.
+
+### 3. Sync project with gradle files
 
 ## Getting Started
 
