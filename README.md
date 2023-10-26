@@ -10,22 +10,48 @@ Android 23
 
 ## installation
 
-1. Add it in your root build.gradle at the end of repositories:
+### 1. Add Jitpack repo in your gradle repositories
+
+If your gradle use buildscript syntax, add Jitpack repo in your root-level build.gradle (*project*/build.gradle):
 ```gradle
+buildscript {
+	//...
+}
+
 allprojects {
 	repositories {
-		...
+		// Another repo...
 		maven { url 'https://jitpack.io' }
 	}
 }
 ```
-2. Add the dependency:
+If your gradle use plugin syntax, add Jitpack repo in your settings.gradle (*project*/settings.gradle):
+```gradle
+pluginManagement {
+    repositories {
+        // Another repo...
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        // Another repo...
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+### 2. Add the dependency in your app-level build.gradle (*project*/app/build.gradle)
+
 ```gradle
 dependencies {
+	// Another dependencies...
 	implementation 'com.github.fazpass-sdk:android-trusted-device-v2:Tag'
 }
 ```
-3. Sync project with gradle files.
+
+### 3. Sync project with gradle files
 
 ## Getting Started
 
@@ -64,26 +90,40 @@ Fazpass.instance.generateMeta(this) { meta, exception ->
     }
 }
 ```
-When device hasn't enrolled any biometric (e.g. Fingerprint, Face, Iris) or device credential (e.g. PIN, Password, Pattern), exception BiometricNoneEnrolledError will be produced.
 
 ## Exceptions
 
-* UninitializedException<br>
-Produced when method `init(context: Context, publicKeyAssetName: String)` hasn't been called once.
-* PublicKeyNotExistException<br>
+#### UninitializedException
+
+Produced when fazpass init method hasn't been called once.
+
+#### PublicKeyNotExistException
+
 Produced when public key with the name registered in init method doesn't exist in the assets directory.
-* EncryptionException<br>
+
+#### EncryptionException
+
 Produced when encryption went wrong because you used the wrong public key.
-* BiometricAuthError<br>
-Produced when biometric authentication is finished with an error. (example: User cancelled biometric auth, User failed biometric auth too many times, and many more)
-* BiometricUnavailableError<br>
+
+#### BiometricAuthError
+
+Produced when biometric authentication is finished with an error. (example: User cancelled biometric auth, User failed biometric auth too many times, and many more).
+
+#### BiometricUnavailableError
+
 Produced when android can't start biometric authentication because there is no suitable hardware (e.g. no biometric sensor or no keyguard) or the hardware is unavailable.
-* BiometricNoneEnrolledError<br>
-Produced when android can't start biometric authentication because there is no biometric or device credential enrolled.
-* BiometricSecurityUpdateRequiredError<br>
+
+#### BiometricNoneEnrolledError
+
+Produced when android can't start biometric authentication because there is no biometric (e.g. Fingerprint, Face, Iris) or device credential (e.g. PIN, Password, Pattern) enrolled.
+
+#### BiometricSecurityUpdateRequiredError
+
 Produced when android can't start biometric authentication because a security vulnerability has been discovered with one or
 more hardware sensors. The affected sensor(s) are unavailable until a security update has addressed the issue.
-* BiometricUnsupportedError<br>
+
+#### BiometricUnsupportedError
+
 Produced when android can't start biometric authentication because the specified options are incompatible with the current Android version.
 
 ## Data Collection
@@ -117,7 +157,7 @@ if user granted the required permissions, otherwise it won't be collected and no
 
 ### Sensitive data collected
 
-#### Your device location (X and Y coordinate, mock location status)
+#### Your device location and mock location status
 
 Required Permissions:
 * android.permission.ACCESS_COARSE_LOCATION or android.permission.ACCESS_FINE_LOCATION
