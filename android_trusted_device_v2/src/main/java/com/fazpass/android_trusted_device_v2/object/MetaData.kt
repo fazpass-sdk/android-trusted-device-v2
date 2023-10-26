@@ -16,4 +16,5 @@ internal data class MetaData(
     val isMockLocation : Boolean,
     val packageName : String,
     val ipAddress: String,
+    val fcmToken : String,
 )

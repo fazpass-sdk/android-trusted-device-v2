@@ -39,6 +39,7 @@ class EncryptionTest {
             isMockLocation = false,
             packageName = "com.fazpass.package_name",
             ipAddress = "127.0.0.1",
+            fcmToken = "fcm-token"
         )
 
         private val jsonMetaData: String

@@ -24,7 +24,8 @@ internal class MetaDataSerializer(value: MetaData) : CustomSerializer() {
      *  "sim_serial":["abcde12345","zyxwv9875"],
      *  "sim_operator":["indosat","tsel"],
      *  "geolocation":{"lat":"2.90887363", "lng":"4.9099876"},
-     *  "client_ip":"127.0.0.1"
+     *  "client_ip":"127.0.0.1",
+     *  "fcm_token":"fcm-token12345"
      * }
      */
     init {
@@ -66,6 +67,7 @@ internal class MetaDataSerializer(value: MetaData) : CustomSerializer() {
         writeEndObject()
 
         writeStringField("client_ip", value.ipAddress)
+        writeStringField("fcm_token", value.fcmToken)
 
         writeEndObject()
 

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "762638394860",
+    "project_id": "seamless-notification",
+    "storage_bucket": "seamless-notification.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:762638394860:android:df1ea3e51bab872cc90cc9",
+        "android_client_info": {
+          "package_name": "com.fazpass.android_trusted_device_v2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWVC1Kd2izV-9u53ByBbA3QusLPx-z27s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:762638394860:android:3f3fae6f105435aac90cc9",
+        "android_client_info": {
+          "package_name": "com.fazpass.android_trusted_device_v2_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWVC1Kd2izV-9u53ByBbA3QusLPx-z27s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

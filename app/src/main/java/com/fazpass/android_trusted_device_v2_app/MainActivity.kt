@@ -19,6 +19,8 @@ import java.nio.charset.StandardCharsets
 import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.spec.PKCS8EncodedKeySpec
+import java.util.Timer
+import java.util.TimerTask
 import javax.crypto.Cipher
 
 class MainActivity : AppCompatActivity() {
@@ -56,13 +58,55 @@ class MainActivity : AppCompatActivity() {
             infoView.removeAllViews()
             fazpassIdIsShown = false
 
-            Fazpass.instance.generateMeta(this) { meta, exception ->
-                when (exception) {
-                    null -> onMetaGenerated(meta)
-                    else -> exception.printStackTrace()
+            try {
+                Fazpass.instance.generateMeta(this) { meta, exception ->
+                    when (exception) {
+                        null -> onMetaGenerated(meta)
+                        else -> onErrorOccurred(exception)
+                    }
                 }
+            } catch (e: Exception) {
+                onErrorOccurred(e)
             }
         }
+
+        Timer().scheduleAtFixedRate(
+            object: TimerTask() {
+                override fun run() {
+                    val token = Fazpass.instance.getFcmToken()
+                    if (token != null) {
+                        runOnUiThread {
+                            infoView.addView(EntryView(this@MainActivity).apply {
+                                name = "FCM Token"
+                                value = token
+                            })
+                        }
+                        this.cancel()
+                    }
+                }
+            },
+            0, 1000
+        )
+
+        Fazpass.instance.startListener(this) {
+
+        }
+    }
+
+    private fun onErrorOccurred(e: Exception) {
+        infoView.addView(EntryView(this).apply {
+            name = "Error"
+            value = """
+                ${e.javaClass.name}
+                ${e.message}
+                ${e.cause.toString()}
+            """.trimIndent()
+        })
+
+        infoView.addView(TextView(this).apply {
+            setTextColor(Color.RED)
+            text = "*Press 'Generate Meta' button to reset"
+        })
     }
 
     private fun onMetaGenerated(meta: String) {

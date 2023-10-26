@@ -2,6 +2,7 @@ plugins {
     id 'com.android.library'
     id 'maven-publish'
     id 'org.jetbrains.kotlin.android'
+    id 'com.google.gms.google-services'
 }
 
 android {
@@ -37,7 +38,7 @@ android {
 }
 
 def getVersionName = { ->
-    return "0.0.9"
+    return "1.0.2-dev.1"
 }
 
 def getArtifactId = { ->
@@ -60,6 +61,7 @@ publishing {
 
 dependencies {
 
+    implementation platform('com.google.firebase:firebase-bom:32.3.1')
     implementation 'androidx.core:core-ktx:1.10.1'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
@@ -67,4 +69,6 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:21.0.1'
     implementation 'com.scottyab:rootbeer-lib:0.1.0'
     implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'com.google.firebase:firebase-analytics-ktx'
+    implementation 'com.google.firebase:firebase-messaging-ktx'
 }

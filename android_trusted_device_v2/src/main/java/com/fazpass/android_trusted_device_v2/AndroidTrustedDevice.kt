@@ -2,6 +2,7 @@ package com.fazpass.android_trusted_device_v2
 
 import android.app.Activity
 import android.content.Context
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceData
 
 internal interface AndroidTrustedDevice {
 
@@ -35,4 +36,8 @@ internal interface AndroidTrustedDevice {
      * @param sensitiveData Any sensitive data you want to enable
      */
     fun enableSelected(vararg sensitiveData: SensitiveData)
+
+    fun startListener(context: Context, callback: (data: CrossDeviceData) -> Unit)
+
+    fun stopListener(context: Context)
 }

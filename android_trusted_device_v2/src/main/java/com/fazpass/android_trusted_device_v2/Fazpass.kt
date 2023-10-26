@@ -2,7 +2,10 @@ package com.fazpass.android_trusted_device_v2
 
 import android.app.Activity
 import android.app.KeyguardManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
 import android.os.Build
@@ -14,7 +17,9 @@ import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.fazpass.android_trusted_device_v2.`object`.Coordinate
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceData
 import com.fazpass.android_trusted_device_v2.`object`.DeviceInfo
 import com.fazpass.android_trusted_device_v2.`object`.MetaData
 import com.fazpass.android_trusted_device_v2.`object`.MetaDataSerializer
@@ -24,6 +29,8 @@ import java.nio.charset.StandardCharsets
 import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.spec.X509EncodedKeySpec
+import java.util.Timer
+import java.util.TimerTask
 import javax.crypto.Cipher
 import kotlin.math.min
 
@@ -38,6 +45,8 @@ class Fazpass private constructor(): AndroidTrustedDevice {
 
     private var tempMetaMapper : HashMap<String, Any>? = null
 
+    private var fcmMessageReceiver : BroadcastReceiver? = null
+
     companion object {
         /**
          * If true, every print and log will be recorded to terminal.
@@ -51,7 +60,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
 
     override fun init(context: Context, publicKeyAssetName: String) {
         this.publicKeyAssetName = publicKeyAssetName
-        NotificationUtil(context).initNotificationChannel()
+        NotificationUtil(context).initialize()
         this.isInitialized = true
     }
 
@@ -87,15 +96,18 @@ class Fazpass private constructor(): AndroidTrustedDevice {
             tempMetaMapper!!["signatures"] = AppSignatureUtil(activity).getSignatures
             tempMetaMapper!!["deviceInfo"] = DeviceInfoUtil().deviceInfo
 
+            // sim numbers & operators
             val dataCarrierUtil = if (simNumbersAndOperatorsEnabled) DataCarrierUtil(activity) else null
             tempMetaMapper!!["simNumbers"] = dataCarrierUtil?.simNumbers ?: listOf<String>()
             tempMetaMapper!!["simOperators"] = dataCarrierUtil?.simOperators ?: listOf<String>()
 
+            // ip address
             IPAddressUtil().getIPAddress { ipAddress ->
                 tempMetaMapper!!["ipAddress"] = ipAddress
                 finalizeGenerateMeta(callback)
             }
 
+            // location
             val locationUtil = if (locationEnabled) LocationUtil(activity) else null
             locationUtil?.getLastKnownLocation { location ->
                 tempMetaMapper!!["isMockLocation"] = locationUtil.isMockLocationOn(location)
@@ -112,6 +124,21 @@ class Fazpass private constructor(): AndroidTrustedDevice {
                     finalizeGenerateMeta(callback)
                 }
             }
+
+            // fcm token
+            Timer().scheduleAtFixedRate(
+                object: TimerTask() {
+                    override fun run() {
+                        val token = getFcmToken()
+                        if (token != null) {
+                            tempMetaMapper!!["fcmToken"] = token
+                            finalizeGenerateMeta(callback)
+                            this.cancel()
+                        }
+                    }
+                },
+                0, 1000
+            )
         }
     }
 
@@ -123,6 +150,30 @@ class Fazpass private constructor(): AndroidTrustedDevice {
             }
         }
     }
+
+    override fun startListener(context: Context, callback: (data: CrossDeviceData) -> Unit) {
+        if (fcmMessageReceiver != null) throw Exception("Only one instance of listener is allowed. Stop ongoing listener before starting a new one.")
+        fcmMessageReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent.getSerializableExtra("data", CrossDeviceData::class.java)
+                } else {
+                    intent.getSerializableExtra("data") as CrossDeviceData
+                }
+                if (data != null) callback(data)
+            }
+        }
+        LocalBroadcastManager.getInstance(context)
+            .registerReceiver(fcmMessageReceiver!!, IntentFilter(NotificationUtil.fcmMessageReceiverChannel))
+    }
+
+    override fun stopListener(context: Context) {
+        if (fcmMessageReceiver == null) throw Exception("There is no ongoing listener.")
+        LocalBroadcastManager.getInstance(context)
+            .unregisterReceiver(fcmMessageReceiver!!)
+    }
+
+    fun getFcmToken() : String? = NotificationUtil.fcmToken
 
     @Suppress("UNCHECKED_CAST")
     private fun finalizeGenerateMeta(callback: (String, FazpassException?) -> Unit) {
@@ -142,6 +193,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         val ipAddress = tempMetaMapper!!["ipAddress"]
         val coordinate = tempMetaMapper!!["coordinate"]
         val isMockLocation = tempMetaMapper!!["isMockLocation"]
+        val fcmToken = tempMetaMapper!!["fcmToken"]
 
         val metadata: MetaData
         try {
@@ -161,6 +213,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
                 isMockLocation = isMockLocation as Boolean,
                 packageName = packageName as String,
                 ipAddress = ipAddress as String,
+                fcmToken = fcmToken as String,
             )
             if (IS_DEBUG) printMetaData(metadata)
         } catch (_: NullPointerException) { return }
