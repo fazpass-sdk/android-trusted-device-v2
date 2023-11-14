@@ -91,8 +91,8 @@ internal class NotificationUtil(private val context: Context) {
         return createNotificationBuilder()
             .setPriority(Notification.PRIORITY_HIGH)
             .setSmallIcon(logo)
-            .setContentTitle(notification?.title ?: "Notification Title")
-            .setContentText(notification?.body ?: "Notification received")
+            .setContentTitle(notification?.title ?: "Verify Login")
+            .setContentText(notification?.body ?: "An unknown device is trying to login with your account. Press this notification to verify.")
             .build()
     }
 }

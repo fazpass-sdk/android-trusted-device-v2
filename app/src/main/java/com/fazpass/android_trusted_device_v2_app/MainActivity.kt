@@ -19,8 +19,6 @@ import java.nio.charset.StandardCharsets
 import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.spec.PKCS8EncodedKeySpec
-import java.util.Timer
-import java.util.TimerTask
 import javax.crypto.Cipher
 
 class MainActivity : AppCompatActivity() {
@@ -70,26 +68,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        Timer().scheduleAtFixedRate(
-            object: TimerTask() {
-                override fun run() {
-                    val token = Fazpass.instance.getFcmToken()
-                    if (token != null) {
-                        runOnUiThread {
-                            infoView.addView(EntryView(this@MainActivity).apply {
-                                name = "FCM Token"
-                                value = token
-                            })
-                        }
-                        this.cancel()
-                    }
-                }
-            },
-            0, 1000
-        )
-
         Fazpass.instance.startListener(this) {
-
+            print(it.toString())
         }
     }
 

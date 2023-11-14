@@ -53,7 +53,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
          *
          * Change to false on production!
          */
-        internal const val IS_DEBUG = false
+        internal const val IS_DEBUG = true
 
         val instance : Fazpass by lazy { Fazpass() }
     }
@@ -173,7 +173,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
             .unregisterReceiver(fcmMessageReceiver!!)
     }
 
-    fun getFcmToken() : String? = NotificationUtil.fcmToken
+    private fun getFcmToken() : String? = NotificationUtil.fcmToken
 
     @Suppress("UNCHECKED_CAST")
     private fun finalizeGenerateMeta(callback: (String, FazpassException?) -> Unit) {
