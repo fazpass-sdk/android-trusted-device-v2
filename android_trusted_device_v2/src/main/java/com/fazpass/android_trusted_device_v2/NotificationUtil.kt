@@ -15,7 +15,6 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.analytics.ktx.analytics
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.RemoteMessage
 
 @Suppress("DEPRECATION")
 internal class NotificationUtil(private val context: Context) {
@@ -26,10 +25,9 @@ internal class NotificationUtil(private val context: Context) {
         const val channelName = "Fazpass Notification"
 
         const val fcmTokenReceiverChannel = "fazpass_fcm_token_receiver_channel"
-        const val fcmMessageReceiverChannel = "fazpass_fcm_message_receiver_channel"
+        const val fcmCrossDeviceRequestReceiverChannel = "fazpass_fcm_cd_request_receiver_channel"
 
         const val locationNotificationId = 1
-        const val fcmNotificationId = 2
 
         var analytics: FirebaseAnalytics? = null
         var fcmToken : String? = null
@@ -86,7 +84,7 @@ internal class NotificationUtil(private val context: Context) {
                 .build()
         }
 
-    fun fcmNotification(notification: RemoteMessage.Notification?) : Notification {
+    /*fun fcmNotification(notification: RemoteMessage.Notification?) : Notification {
         val logo = context.applicationInfo.icon
         return createNotificationBuilder()
             .setPriority(Notification.PRIORITY_HIGH)
@@ -94,5 +92,5 @@ internal class NotificationUtil(private val context: Context) {
             .setContentTitle(notification?.title ?: "Verify Login")
             .setContentText(notification?.body ?: "An unknown device is trying to login with your account. Press this notification to verify.")
             .build()
-    }
+    }*/
 }

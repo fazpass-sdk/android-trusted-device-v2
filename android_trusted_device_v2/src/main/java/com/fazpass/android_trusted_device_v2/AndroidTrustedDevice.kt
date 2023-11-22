@@ -2,7 +2,7 @@ package com.fazpass.android_trusted_device_v2
 
 import android.app.Activity
 import android.content.Context
-import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceData
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequestStream
 
 internal interface AndroidTrustedDevice {
 
@@ -37,7 +37,16 @@ internal interface AndroidTrustedDevice {
      */
     fun enableSelected(vararg sensitiveData: SensitiveData)
 
-    fun startListener(context: Context, callback: (data: CrossDeviceData) -> Unit)
-
-    fun stopListener(context: Context)
+    /**
+     * To start listening to cross device login request, you have to call this method to get the stream instance,
+     * then call the listen(callback) method. To stop listening, call the close() method.
+     *
+     * Before you listen to cross device login request, make sure these requirements
+     * has been met:
+     * - Device has been enrolled
+     * - Device is trusted
+     * - Device fazpass_id is still active
+     * - Application is in "Logged In" state
+     */
+    fun getCrossDeviceRequestStreamInstance(context: Context) : CrossDeviceRequestStream
 }

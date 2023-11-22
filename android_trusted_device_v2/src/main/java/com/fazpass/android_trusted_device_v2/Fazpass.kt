@@ -2,10 +2,7 @@ package com.fazpass.android_trusted_device_v2
 
 import android.app.Activity
 import android.app.KeyguardManager
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
 import android.os.Build
@@ -17,9 +14,8 @@ import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.fazpass.android_trusted_device_v2.`object`.Coordinate
-import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceData
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequestStream
 import com.fazpass.android_trusted_device_v2.`object`.DeviceInfo
 import com.fazpass.android_trusted_device_v2.`object`.MetaData
 import com.fazpass.android_trusted_device_v2.`object`.MetaDataSerializer
@@ -44,8 +40,6 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     private var simNumbersAndOperatorsEnabled = false
 
     private var tempMetaMapper : HashMap<String, Any>? = null
-
-    private var fcmMessageReceiver : BroadcastReceiver? = null
 
     companion object {
         /**
@@ -151,26 +145,11 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         }
     }
 
-    override fun startListener(context: Context, callback: (data: CrossDeviceData) -> Unit) {
-        if (fcmMessageReceiver != null) throw Exception("Only one instance of listener is allowed. Stop ongoing listener before starting a new one.")
-        fcmMessageReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    intent.getSerializableExtra("data", CrossDeviceData::class.java)
-                } else {
-                    intent.getSerializableExtra("data") as CrossDeviceData
-                }
-                if (data != null) callback(data)
-            }
-        }
-        LocalBroadcastManager.getInstance(context)
-            .registerReceiver(fcmMessageReceiver!!, IntentFilter(NotificationUtil.fcmMessageReceiverChannel))
-    }
-
-    override fun stopListener(context: Context) {
-        if (fcmMessageReceiver == null) throw Exception("There is no ongoing listener.")
-        LocalBroadcastManager.getInstance(context)
-            .unregisterReceiver(fcmMessageReceiver!!)
+    override fun getCrossDeviceRequestStreamInstance(context: Context) : CrossDeviceRequestStream {
+        return CrossDeviceRequestStream(
+            context,
+            channel = NotificationUtil.fcmCrossDeviceRequestReceiverChannel,
+        )
     }
 
     private fun getFcmToken() : String? = NotificationUtil.fcmToken

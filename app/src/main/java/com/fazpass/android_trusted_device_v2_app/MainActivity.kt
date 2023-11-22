@@ -68,8 +68,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        Fazpass.instance.startListener(this) {
-            print(it.toString())
+        val stream = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
+        stream.listen {
+
         }
     }
 
