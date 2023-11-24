@@ -163,6 +163,9 @@ Required Permissions:
 * android.permission.ACCESS_COARSE_LOCATION or android.permission.ACCESS_FINE_LOCATION
 * android.permission.FOREGROUND_SERVICE
 
+After you enabled location data collection and user has granted the location permission, you have to
+make sure the user has enabled their location/gps settings before you call generateMeta() method.
+
 #### Your device SIM numbers and operators (if available)
 
 Required Permissions:

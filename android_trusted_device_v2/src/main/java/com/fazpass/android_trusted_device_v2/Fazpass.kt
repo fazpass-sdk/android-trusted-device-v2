@@ -3,6 +3,7 @@ package com.fazpass.android_trusted_device_v2
 import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
 import android.os.Build
@@ -15,6 +16,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.fazpass.android_trusted_device_v2.`object`.Coordinate
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequest
 import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequestStream
 import com.fazpass.android_trusted_device_v2.`object`.DeviceInfo
 import com.fazpass.android_trusted_device_v2.`object`.MetaData
@@ -150,6 +152,11 @@ class Fazpass private constructor(): AndroidTrustedDevice {
             context,
             channel = NotificationUtil.fcmCrossDeviceRequestReceiverChannel,
         )
+    }
+
+    override fun getCrossDeviceRequestFromFirstActivityIntent(intent: Intent?): CrossDeviceRequest? {
+        val bundle = intent?.extras ?: return null
+        return CrossDeviceRequest(bundle)
     }
 
     private fun getFcmToken() : String? = NotificationUtil.fcmToken

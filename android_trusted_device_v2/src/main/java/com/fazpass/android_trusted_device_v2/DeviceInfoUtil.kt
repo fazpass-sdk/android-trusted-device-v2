@@ -8,7 +8,7 @@ import java.util.Scanner
 internal class DeviceInfoUtil {
 
     val deviceInfo : DeviceInfo
-        get() = DeviceInfo("Android ${Build.VERSION.SDK_INT}", Build.BRAND, Build.TYPE, getCpuModel())
+        get() = DeviceInfo("Android ${Build.VERSION.SDK_INT}", Build.BRAND, Build.MODEL, getCpuModel())
 
     private fun getCpuModel() : String {
         var cpuModel: String? = null

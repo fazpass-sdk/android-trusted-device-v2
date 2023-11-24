@@ -2,6 +2,8 @@ package com.fazpass.android_trusted_device_v2
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequest
 import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequestStream
 
 internal interface AndroidTrustedDevice {
@@ -49,4 +51,6 @@ internal interface AndroidTrustedDevice {
      * - Application is in "Logged In" state
      */
     fun getCrossDeviceRequestStreamInstance(context: Context) : CrossDeviceRequestStream
+
+    fun getCrossDeviceRequestFromFirstActivityIntent(intent: Intent?) : CrossDeviceRequest?
 }
