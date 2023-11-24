@@ -156,7 +156,15 @@ class Fazpass private constructor(): AndroidTrustedDevice {
 
     override fun getCrossDeviceRequestFromFirstActivityIntent(intent: Intent?): CrossDeviceRequest? {
         val bundle = intent?.extras ?: return null
-        return CrossDeviceRequest(bundle)
+        val request = CrossDeviceRequest(bundle)
+
+        if (request.merchantAppId != ""
+            && request.expired != -1
+            && request.deviceReceive != ""
+            && request.deviceRequest != ""
+            && request.deviceIdReceive != ""
+            && request.deviceIdRequest != "") return request
+        return null
     }
 
     private fun getFcmToken() : String? = NotificationUtil.fcmToken
