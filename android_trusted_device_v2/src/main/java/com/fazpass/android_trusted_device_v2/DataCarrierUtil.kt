@@ -20,16 +20,19 @@ internal class DataCarrierUtil(private val context: Context) {
                 return emptyList()
             }
 
-            return sm.activeSubscriptionInfoList
+            val list = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                 sm.completeActiveSubscriptionInfoList
+            else sm.activeSubscriptionInfoList ?: emptyList()
+            return list
                 .map {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                         && ContextCompat.checkSelfPermission(
                             context, Manifest.permission.READ_PHONE_NUMBERS
-                        ) != PackageManager.PERMISSION_GRANTED
+                        ) == PackageManager.PERMISSION_GRANTED
                     ) {
                         sm.getPhoneNumber(it.subscriptionId)
                     } else {
-                        it.number
+                        it.number ?: ""
                     }
                 }
         }
@@ -42,7 +45,10 @@ internal class DataCarrierUtil(private val context: Context) {
                 return emptyList()
             }
 
-            return sm.activeSubscriptionInfoList
+            val list = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                sm.completeActiveSubscriptionInfoList
+            else sm.activeSubscriptionInfoList ?: emptyList()
+            return list
                 .map { it.carrierName.toString() }
         }
 }

@@ -10,11 +10,13 @@ import android.util.JsonReader
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.fazpass.android_trusted_device_v2.Fazpass
 import com.fazpass.android_trusted_device_v2.SensitiveData
+import com.fazpass.android_trusted_device_v2.`object`.FazpassSettings
 import java.nio.charset.StandardCharsets
 import java.security.KeyFactory
 import java.security.PrivateKey
@@ -24,8 +26,9 @@ import javax.crypto.Cipher
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        private const val PUBLIC_KEY_ASSET_FILENAME = "my_public_key.pub"
-        private const val PRIVATE_KEY_ASSET_FILENAME = "my_private_key.key"
+        private const val PUBLIC_KEY_ASSET_FILENAME = "staging-public_key.pub"
+        private const val PRIVATE_KEY_ASSET_FILENAME = "staging-private_key.key"
+        private const val MERCHANT_APP_ID = "e30e8ae2-1557-46f6-ba3a-755b57ce4c44"
     }
 
     private lateinit var infoView: LinearLayout
@@ -42,13 +45,64 @@ class MainActivity : AppCompatActivity() {
 
         infoView = findViewById(R.id.ma_info_view)
 
-        val reqPermissionBtn = findViewById<Button>(R.id.ma_reqpermission_btn)
-        reqPermissionBtn.setOnClickListener {
-            Fazpass.instance.enableSelected(
-                SensitiveData.location,
-                SensitiveData.simNumbersAndOperators
-            )
-            requestPermissions()
+        val settingsBtn = findViewById<Button>(R.id.ma_settings_btn)
+        settingsBtn.setOnClickListener {
+            // load fazpass settings
+            val fazpassSettings = Fazpass.instance.getSettingsForAccountIndex(-1)
+            val oldSettings = if (fazpassSettings != null) booleanArrayOf(
+                fazpassSettings.sensitiveData.contains(SensitiveData.location),
+                fazpassSettings.sensitiveData.contains(SensitiveData.simNumbersAndOperators),
+                fazpassSettings.isBiometricLevelHigh
+            ) else null
+            val newSettings = arrayOf<Boolean?>(null, null, null)
+            val dialog = AlertDialog.Builder(this)
+                .setTitle("Settings")
+                .setMultiChoiceItems(
+                    arrayOf(
+                        "Enable location",
+                        "Enable Sim Information",
+                        "High Biometric Level"),
+                    oldSettings) { _, i, bool ->
+                    newSettings[i] = bool
+                }
+                .setPositiveButton("Save") { dialog, _ ->
+                    val newFazpassSettings = FazpassSettings.Builder()
+
+                    for (i in newSettings.indices) {
+                        if (newSettings[i] == null) {
+                            newSettings[i] = oldSettings?.get(i) ?: false
+                        }
+                    }
+
+                    if (newSettings[0]!!) {
+                        newFazpassSettings.enableSelectedSensitiveData(SensitiveData.location)
+                    } else {
+                        newFazpassSettings.disableSelectedSensitiveData(SensitiveData.location)
+                    }
+
+                    if (newSettings[1]!!) {
+                        newFazpassSettings.enableSelectedSensitiveData(SensitiveData.simNumbersAndOperators)
+                    } else {
+                        newFazpassSettings.disableSelectedSensitiveData(SensitiveData.simNumbersAndOperators)
+                    }
+
+                    if (newSettings[2]!!) {
+                        Fazpass.instance.generateSecretKeyForHighLevelBiometric(this)
+                        newFazpassSettings.setBiometricLevelToHigh()
+                    } else {
+                        newFazpassSettings.setBiometricLevelToLow()
+                    }
+
+                    Fazpass.instance.setSettingsForAccountIndex(this, -1, newFazpassSettings.build())
+
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Cancel") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .setCancelable(false)
+                .create()
+            dialog.show()
         }
 
         val genMetaBtn = findViewById<Button>(R.id.ma_genmeta_btn)
@@ -68,20 +122,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val stream = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
-        stream.listen {
-
-        }
+        requestPermissions()
     }
 
     private fun onErrorOccurred(e: Exception) {
         infoView.addView(EntryView(this).apply {
             name = "Error"
-            value = """
-                ${e.javaClass.name}
-                ${e.message}
-                ${e.cause.toString()}
-            """.trimIndent()
+            value = "${e.javaClass.name}\n" +
+                    "${e.message}\n" +
+                    e.stackTraceToString()
         })
 
         infoView.addView(TextView(this).apply {
@@ -91,14 +140,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onMetaGenerated(meta: String) {
-        infoView.addView(EntryView(this).apply {
-            name = "Generated Meta"
-            value = meta
-        })
-
         this.meta = meta
 
-        infoView.addView(checkBtn)
+        runOnUiThread {
+            infoView.addView(EntryView(this).apply {
+                name = "Generated Meta"
+                value = meta
+            })
+
+            infoView.addView(checkBtn)
+        }
     }
 
     private fun onCheckResponse(response: String, status: Boolean) {
@@ -110,7 +161,7 @@ class MainActivity : AppCompatActivity() {
         if (!status) return
 
         fazpassId = getFazpassId(response)
-        if (fazpassId!!.isNotBlank()) {
+        if (fazpassId?.isNotBlank() == true) {
             infoView.addView(EntryView(this).apply {
                 name = "Fazpass ID"
                 value = fazpassId!!
@@ -128,8 +179,8 @@ class MainActivity : AppCompatActivity() {
         })
 
         if (status) {
-            fazpassId = getFazpassId(response).ifBlank { fazpassId }
-            if (!fazpassIdIsShown) {
+            fazpassId = getFazpassId(response)
+            if (!fazpassIdIsShown && fazpassId?.isNotBlank() == true) {
                 infoView.addView(EntryView(this).apply {
                     name = "Fazpass ID"
                     value = fazpassId!!
@@ -167,7 +218,7 @@ class MainActivity : AppCompatActivity() {
             text = "Check"
             setOnClickListener {
                 val data = """{
-                    "merchant_app_id": "e30e8ae2-1557-46f6-ba3a-755b57ce4c44",
+                    "merchant_app_id": "$MERCHANT_APP_ID",
                     "meta": "$meta",
                     "pic_id": "anvarisy@gmail.com"
                 }""".trimIndent()
@@ -180,7 +231,7 @@ class MainActivity : AppCompatActivity() {
             text = "Enroll"
             setOnClickListener {
                 val data = """{
-                    "merchant_app_id": "e30e8ae2-1557-46f6-ba3a-755b57ce4c44",
+                    "merchant_app_id": "$MERCHANT_APP_ID",
                     "meta": "$meta",
                     "pic_id": "anvarisy@gmail.com"
                 }""".trimIndent()
@@ -193,7 +244,7 @@ class MainActivity : AppCompatActivity() {
             text = "Validate"
             setOnClickListener {
                 val data = """{
-                    "merchant_app_id": "e30e8ae2-1557-46f6-ba3a-755b57ce4c44",
+                    "merchant_app_id": "$MERCHANT_APP_ID",
                     "meta": "$meta",
                     "fazpass_id": "$fazpassId"
                 }""".trimIndent()
@@ -206,7 +257,7 @@ class MainActivity : AppCompatActivity() {
             text = "Remove"
             setOnClickListener {
                 val data = """{
-                    "merchant_app_id": "e30e8ae2-1557-46f6-ba3a-755b57ce4c44",
+                    "merchant_app_id": "$MERCHANT_APP_ID",
                     "meta": "$meta",
                     "fazpass_id": "$fazpassId"
                 }""".trimIndent()
@@ -245,7 +296,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun getFazpassId(response: String): String {
+    private fun getFazpassId(response: String): String? {
         var meta = ""
         val responseReader = JsonReader(response.reader())
         responseReader.beginObject()
@@ -267,18 +318,18 @@ class MainActivity : AppCompatActivity() {
         val reader = JsonReader(decryptedMetaData.reader())
         reader.beginObject()
 
-        var fazpassId = ""
+        var fazpassId : String? = null
+        var isActive = false
         while (reader.hasNext()) {
-            val key = reader.nextName()
-            if (key == "fazpass_id") {
-                fazpassId = reader.nextString()
-                break
+            when (reader.nextName()) {
+                "fazpass_id" -> fazpassId = reader.nextString()
+                "is_active" -> isActive = reader.nextBoolean()
+                else -> reader.skipValue()
             }
-            reader.skipValue()
         }
         reader.close()
 
-        return fazpassId
+        return if (isActive) fazpassId else null
     }
 
     private fun decryptMetaData(encryptedMetaData: String): String {

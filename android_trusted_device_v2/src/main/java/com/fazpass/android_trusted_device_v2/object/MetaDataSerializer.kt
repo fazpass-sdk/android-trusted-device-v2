@@ -25,7 +25,11 @@ internal class MetaDataSerializer(value: MetaData) : CustomSerializer() {
      *  "sim_operator":["indosat","tsel"],
      *  "geolocation":{"lat":"2.90887363", "lng":"4.9099876"},
      *  "client_ip":"127.0.0.1",
-     *  "fcm_token":"fcm-token12345"
+     *  "fcm_token":"fcm-token12345",
+     *  "biometric":{
+     *      "level":"LOW/HIGH",
+     *      "is_changed":false/true
+     *  }
      * }
      */
     init {
@@ -68,6 +72,13 @@ internal class MetaDataSerializer(value: MetaData) : CustomSerializer() {
 
         writeStringField("client_ip", value.ipAddress)
         writeStringField("fcm_token", value.fcmToken)
+
+        writeObjectFieldStart("biometric")
+        writeStringField("level", value.biometric.level)
+        writeBooleanField("is_changed", value.biometric.isChanged)
+        writeEndObject()
+
+        finalize()
 
         writeEndObject()
 

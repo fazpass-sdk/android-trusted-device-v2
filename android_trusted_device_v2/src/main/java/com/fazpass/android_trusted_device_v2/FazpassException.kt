@@ -1,6 +1,8 @@
 package com.fazpass.android_trusted_device_v2
 
-sealed class FazpassException(message: String?) : Exception(message)
+sealed class FazpassException(e: Exception) : Exception(e) {
+    constructor(message: String?) : this(Exception(message))
+}
 
 // GENERAL ERRORS
 class UninitializedException
@@ -9,9 +11,8 @@ class UninitializedException
 class PublicKeyNotExistException(name: String)
     : FazpassException("'$name' file doesn't exist in the assets directory!")
 
-class EncryptionException
-    : FazpassException("Something went wrong when trying to encrypt data. " +
-        "Did you use the correct public key file?")
+class EncryptionException(val e: Exception)
+    : FazpassException(e)
 
 // BIOMETRIC ERRORS
 class BiometricNoneEnrolledError

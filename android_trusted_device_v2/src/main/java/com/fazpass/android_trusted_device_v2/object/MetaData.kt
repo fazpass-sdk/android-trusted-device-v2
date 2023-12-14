@@ -15,6 +15,7 @@ internal data class MetaData(
     val coordinate : Coordinate,
     val isMockLocation : Boolean,
     val packageName : String,
-    val ipAddress: String,
+    val ipAddress : String,
     val fcmToken : String,
+    val biometric : BiometricInfo,
 )
