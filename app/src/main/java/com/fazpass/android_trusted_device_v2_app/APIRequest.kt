@@ -9,8 +9,6 @@ import javax.net.ssl.HttpsURLConnection
 
 class APIRequest(private val url: String, private val data: String) {
 
-    private val bearerToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjo0fQ.WEV3bCizw9U_hxRC6DxHOzZthuJXRE8ziI3b6bHUpEI"
-
     fun fetch(callback: (String, Boolean) -> Unit) {
         Thread {
             var s: Scanner? = null
@@ -19,7 +17,7 @@ class APIRequest(private val url: String, private val data: String) {
 
             val conn = URL(url).openConnection() as HttpsURLConnection
             conn.requestMethod = "POST"
-            conn.setRequestProperty("Authorization", "Bearer $bearerToken")
+            conn.setRequestProperty("Authorization", "Bearer ${MainActivity.BEARER_TOKEN}")
             conn.setRequestProperty("User-Agent", "Mozilla/5.0")
             conn.setRequestProperty("Accept", "*/*")
             conn.setRequestProperty("Accept-Encoding", "gzip, deflate, br")

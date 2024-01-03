@@ -46,6 +46,8 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     private lateinit var publicKeyAssetName : String
     private lateinit var settings : HashMap<Int, FazpassSettings>
 
+    private lateinit var notificationUtil: NotificationUtil
+
     companion object {
         /**
          * If true, every print and log will be recorded to terminal.
@@ -61,7 +63,8 @@ class Fazpass private constructor(): AndroidTrustedDevice {
 
     override fun init(context: Context, publicKeyAssetName: String) {
         this.publicKeyAssetName = publicKeyAssetName
-        NotificationUtil(context).initialize()
+        notificationUtil = NotificationUtil(context)
+        notificationUtil.initialize()
 
         // load settings
         this.settings = hashMapOf()
@@ -100,15 +103,13 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     }
 
     override fun setSettingsForAccountIndex(context: Context, accountIndex: Int, settings: FazpassSettings?) {
-        val prefs = SharedPreferenceUtil(context)
-
         if (settings != null) {
             this.settings[accountIndex] = settings
         } else {
             this.settings.remove(accountIndex)
         }
 
-        prefs.saveFazpassSettings(accountIndex, settings)
+        SharedPreferenceUtil(context).saveFazpassSettings(accountIndex, settings)
     }
 
     override fun getSettingsForAccountIndex(accountIndex: Int): FazpassSettings? =
@@ -121,7 +122,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         )
     }
 
-    override fun getCrossDeviceRequestFromFirstActivityIntent(intent: Intent?): CrossDeviceRequest? {
+    override fun getCrossDeviceRequestFromNotification(intent: Intent?): CrossDeviceRequest? {
         val bundle = intent?.extras ?: return null
         val request = CrossDeviceRequest(bundle)
 
@@ -137,7 +138,9 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     private fun getFcmToken() : String? = NotificationUtil.fcmToken
 
     private fun doGenerateMeta(activity: Activity, accountIndex: Int, callback: (String, FazpassException?) -> Unit) {
-        if (!isInitialized) throw UninitializedException()
+        if (!isInitialized) {
+            callback("", FazpassException.UninitializedException)
+        }
         this.assetManager = activity.assets
 
         // declare settings for this generated meta
@@ -155,7 +158,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
 
         openBiometric(activity, accountIndex, isBiometricLevelHigh) { hasChanged, biometricErr ->
             if (biometricErr != null) {
-                if (IS_DEBUG) biometricErr.printStackTrace()
+                if (IS_DEBUG) biometricErr.exception.printStackTrace()
                 callback("", biometricErr)
                 return@openBiometric
             }
@@ -230,14 +233,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
                     if (IS_DEBUG) printMetaData(metadata)
 
                     activity.runOnUiThread {
-                        try {
-                            val encryptedMetaData = encryptMetaData(metadata)
-                            callback(encryptedMetaData, null)
-                        } catch (e: PublicKeyNotExistException) {
-                            callback("", e)
-                        } catch (e: Exception) {
-                            callback("", EncryptionException(e))
-                        }
+                        encryptMetaData(metadata, callback)
                     }
                 }
             }.start()
@@ -251,7 +247,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             val keyguardManager = ctx.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
             if (!keyguardManager.isDeviceSecure) {
-                callback(false, BiometricNoneEnrolledError())
+                callback(false, FazpassException.BiometricNoneEnrolledError)
                 return
             }
         }
@@ -259,19 +255,19 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         val biometricManager = BiometricManager.from(ctx)
         when (biometricManager.canAuthenticate(authenticators)) {
             BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
-                callback(false, BiometricNoneEnrolledError())
+                callback(false, FazpassException.BiometricNoneEnrolledError)
                 return
             }
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE, BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
-                callback(false, BiometricUnavailableError())
+                callback(false, FazpassException.BiometricUnavailableError)
                 return
             }
             BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> {
-                callback(false, BiometricSecurityUpdateRequiredError())
+                callback(false, FazpassException.BiometricSecurityUpdateRequiredError)
                 return
             }
             BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED -> {
-                callback(false, BiometricUnsupportedError())
+                callback(false, FazpassException.BiometricUnsupportedError)
                 return
             }
             else -> {}
@@ -283,7 +279,10 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         val listener = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 super.onAuthenticationError(errorCode, errString)
-                callback(hasChanged, BiometricAuthError(errString.toString()))
+                val exception = FazpassException.BiometricAuthError.apply {
+                    setException(Exception(errString.toString()))
+                }
+                callback(hasChanged, exception)
             }
 
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
@@ -358,7 +357,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         }
     }
 
-    private fun encryptMetaData(metadata: MetaData) : String {
+    private fun encryptMetaData(metadata: MetaData, callback: (String, FazpassException?) -> Unit) {
         val jsonString: String = MetaDataSerializer(metadata).result
         if (IS_DEBUG) Log.i("META-AS-STRING", jsonString)
 
@@ -369,7 +368,13 @@ class Fazpass private constructor(): AndroidTrustedDevice {
             if (IS_DEBUG) e.printStackTrace()
             assetManager.close()
         }
-        if (keyInputStream == null) throw PublicKeyNotExistException(publicKeyAssetName)
+        if (keyInputStream == null) {
+            val exception = FazpassException.PublicKeyNotExistException.apply {
+                setException(Exception("'$publicKeyAssetName' file doesn't exist in the assets directory!"))
+            }
+            callback("", exception)
+            return
+        }
 
         var key = String(keyInputStream.readBytes())
         keyInputStream.close()
@@ -381,20 +386,23 @@ class Fazpass private constructor(): AndroidTrustedDevice {
             val keySpec = X509EncodedKeySpec(Base64.decode(key, Base64.DEFAULT))
             val keyFactory = KeyFactory.getInstance("RSA")
             publicKey = keyFactory.generatePublic(keySpec)
+
+            // Encrypt string JSON with public key
+            val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+            val encryptedBytes = cipher.doFinal(jsonString.toByteArray(StandardCharsets.UTF_8))
+
+            // Encode to base64 string then return
+            val base64Result = Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
+            if (IS_DEBUG) Log.i("META-RESULT", base64Result)
+            callback(base64Result, null)
         } catch (e: Exception) {
             if (IS_DEBUG) e.printStackTrace()
-            throw e
+            val exception = FazpassException.EncryptionException.apply {
+                setException(e)
+            }
+            callback("", exception)
         }
-
-        // Encrypt string JSON with public key
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        val encryptedBytes = cipher.doFinal(jsonString.toByteArray(StandardCharsets.UTF_8))
-
-        // Encode to base64 string then return
-        val base64Result = Base64.encodeToString(encryptedBytes, Base64.NO_WRAP)
-        if (IS_DEBUG) Log.i("META-RESULT", base64Result)
-        return base64Result
     }
 
     private fun printMetaData(metaData: MetaData) {

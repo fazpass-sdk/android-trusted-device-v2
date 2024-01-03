@@ -27,15 +27,26 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val PUBLIC_KEY_ASSET_FILENAME = "staging-public_key.pub"
+        //"staging-public_key.pub"
+        //"my_public_key.pub"
         private const val PRIVATE_KEY_ASSET_FILENAME = "staging-private_key.key"
-        private const val MERCHANT_APP_ID = "e30e8ae2-1557-46f6-ba3a-755b57ce4c44"
+        //"staging-private_key.key"
+        //"my_private_key.key"
+        private const val MERCHANT_APP_ID = "afb2c34a-4c4f-4188-9921-5c17d81a3b3d"
+        //"afb2c34a-4c4f-4188-9921-5c17d81a3b3d"
+        //"e30e8ae2-1557-46f6-ba3a-755b57ce4c44"
+        const val BEARER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjozNn0.mfny8amysdJQYlCrUlYeA-u4EG1Dw9_nwotOl-0XuQ8"
+        //"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjozNn0.mfny8amysdJQYlCrUlYeA-u4EG1Dw9_nwotOl-0XuQ8"
+        //"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjo0fQ.WEV3bCizw9U_hxRC6DxHOzZthuJXRE8ziI3b6bHUpEI"
     }
 
     private lateinit var infoView: LinearLayout
 
     private var meta: String? = null
-    private var fazpassId: String? = null
     private var fazpassIdIsShown = false
+
+    private var fazpassId: String? = null
+    private var challenge: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,10 +122,10 @@ class MainActivity : AppCompatActivity() {
             fazpassIdIsShown = false
 
             try {
-                Fazpass.instance.generateMeta(this) { meta, exception ->
-                    when (exception) {
+                Fazpass.instance.generateMeta(this) { meta, fazpassException ->
+                    when (fazpassException) {
                         null -> onMetaGenerated(meta)
-                        else -> onErrorOccurred(exception)
+                        else -> onErrorOccurred(fazpassException.exception)
                     }
                 }
             } catch (e: Exception) {
@@ -153,6 +164,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onCheckResponse(response: String, status: Boolean) {
+        infoView.removeView(checkBtn)
+
         infoView.addView(EntryView(this).apply {
             name = "Check Response"
             value = response
@@ -160,7 +173,7 @@ class MainActivity : AppCompatActivity() {
 
         if (!status) return
 
-        fazpassId = getFazpassId(response)
+        readDataFromResponse(response)
         if (fazpassId?.isNotBlank() == true) {
             infoView.addView(EntryView(this).apply {
                 name = "Fazpass ID"
@@ -168,18 +181,26 @@ class MainActivity : AppCompatActivity() {
             })
             fazpassIdIsShown = true
         }
+        if (challenge.isNotBlank()) {
+            infoView.addView(EntryView(this).apply {
+                name = "Challenge"
+                value = challenge
+            })
+        }
 
-        infoView.addView(enrollBtn)
+        infoView.addView(actionBtn)
     }
 
     private fun onEnrollResponse(response: String, status: Boolean) {
+        infoView.removeViewAt(infoView.childCount-1)
+
         infoView.addView(EntryView(this).apply {
             name = "Enroll Response"
             value = response
         })
 
         if (status) {
-            fazpassId = getFazpassId(response)
+            readDataFromResponse(response)
             if (!fazpassIdIsShown && fazpassId?.isNotBlank() == true) {
                 infoView.addView(EntryView(this).apply {
                     name = "Fazpass ID"
@@ -189,19 +210,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        infoView.addView(validateBtn)
+        infoView.addView(TextView(this).apply {
+            setTextColor(Color.RED)
+            text = "*Press 'Generate Meta' button to reset"
+        })
     }
 
     private fun onValidateResponse(response: String, status: Boolean) {
+        infoView.removeViewAt(infoView.childCount-1)
+
         infoView.addView(EntryView(this).apply {
             name = "Validate Response"
             value = response
         })
 
-        infoView.addView(removeBtn)
+        infoView.addView(TextView(this).apply {
+            setTextColor(Color.RED)
+            text = "*Press 'Generate Meta' button to reset"
+        })
     }
 
     private fun onRemoveResponse(response: String, status: Boolean) {
+        infoView.removeViewAt(infoView.childCount-1)
+
         infoView.addView(EntryView(this).apply {
             name = "Remove Response"
             value = response
@@ -226,42 +257,50 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-    private val enrollBtn: Button
+    private val actionBtn: Button
         get() = Button(this).apply {
-            text = "Enroll"
+            text = "Action"
             setOnClickListener {
-                val data = """{
-                    "merchant_app_id": "$MERCHANT_APP_ID",
-                    "meta": "$meta",
-                    "pic_id": "anvarisy@gmail.com"
-                }""".trimIndent()
-                APIRequest("https://api.fazpas.com/v2/trusted-device/enroll",data).fetch(this@MainActivity::onEnrollResponse)
-            }
-        }
-
-    private val validateBtn: Button
-        get() = Button(this).apply {
-            text = "Validate"
-            setOnClickListener {
-                val data = """{
-                    "merchant_app_id": "$MERCHANT_APP_ID",
-                    "meta": "$meta",
-                    "fazpass_id": "$fazpassId"
-                }""".trimIndent()
-                APIRequest("https://api.fazpas.com/v2/trusted-device/validate",data).fetch(this@MainActivity::onValidateResponse)
-            }
-        }
-
-    private val removeBtn: Button
-        get() = Button(this).apply {
-            text = "Remove"
-            setOnClickListener {
-                val data = """{
-                    "merchant_app_id": "$MERCHANT_APP_ID",
-                    "meta": "$meta",
-                    "fazpass_id": "$fazpassId"
-                }""".trimIndent()
-                APIRequest("https://api.fazpas.com/v2/trusted-device/remove",data).fetch(this@MainActivity::onRemoveResponse)
+                val dialog = AlertDialog.Builder(this@MainActivity)
+                    .setTitle("Pick one")
+                    .setItems(
+                        arrayOf("Enroll", "Validate", "Remove")
+                    ) { dialog, which ->
+                        when (which) {
+                            0 -> {
+                                val data = """{
+                                    "merchant_app_id": "$MERCHANT_APP_ID",
+                                    "meta": "$meta",
+                                    "pic_id": "anvarisy@gmail.com",
+                                    "challenge": "$challenge"
+                                }""".trimIndent()
+                                APIRequest("https://api.fazpas.com/v2/trusted-device/enroll",data).fetch(this@MainActivity::onEnrollResponse)
+                            }
+                            1 -> {
+                                val data = """{
+                                    "merchant_app_id": "$MERCHANT_APP_ID",
+                                    "meta": "$meta",
+                                    "fazpass_id": "$fazpassId",
+                                    "challenge": "$challenge"
+                                }""".trimIndent()
+                                APIRequest("https://api.fazpas.com/v2/trusted-device/validate",data).fetch(this@MainActivity::onValidateResponse)
+                            }
+                            2 -> {
+                                val data = """{
+                                    "merchant_app_id": "$MERCHANT_APP_ID",
+                                    "meta": "$meta",
+                                    "fazpass_id": "$fazpassId",
+                                    "challenge": "$challenge"
+                                }""".trimIndent()
+                                APIRequest("https://api.fazpas.com/v2/trusted-device/remove",data).fetch(this@MainActivity::onRemoveResponse)
+                            }
+                        }
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton("Cancel") { dialog, which ->
+                        dialog.dismiss()
+                    }
+                dialog.show()
             }
         }
 
@@ -296,7 +335,7 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun getFazpassId(response: String): String? {
+    private fun readDataFromResponse(response: String) {
         var meta = ""
         val responseReader = JsonReader(response.reader())
         responseReader.beginObject()
@@ -320,16 +359,23 @@ class MainActivity : AppCompatActivity() {
 
         var fazpassId : String? = null
         var isActive = false
+        var challenge = ""
         while (reader.hasNext()) {
             when (reader.nextName()) {
                 "fazpass_id" -> fazpassId = reader.nextString()
                 "is_active" -> isActive = reader.nextBoolean()
+                "challenge" -> challenge = reader.nextString()
                 else -> reader.skipValue()
             }
         }
         reader.close()
 
-        return if (isActive) fazpassId else null
+        if (isActive) {
+            this.fazpassId = fazpassId
+        } else {
+            this.fazpassId = null
+        }
+        this.challenge = challenge
     }
 
     private fun decryptMetaData(encryptedMetaData: String): String {

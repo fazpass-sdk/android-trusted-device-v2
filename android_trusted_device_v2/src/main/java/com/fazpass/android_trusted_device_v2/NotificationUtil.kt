@@ -83,14 +83,4 @@ internal class NotificationUtil(private val context: Context) {
                 .setContentText(text)
                 .build()
         }
-
-    /*fun fcmNotification(notification: RemoteMessage.Notification?) : Notification {
-        val logo = context.applicationInfo.icon
-        return createNotificationBuilder()
-            .setPriority(Notification.PRIORITY_HIGH)
-            .setSmallIcon(logo)
-            .setContentTitle(notification?.title ?: "Verify Login")
-            .setContentText(notification?.body ?: "An unknown device is trying to login with your account. Press this notification to verify.")
-            .build()
-    }*/
 }

@@ -50,7 +50,7 @@ internal interface AndroidTrustedDevice {
      * Get saved settings that has been set in [setSettingsForAccountIndex] method.
      *
      * @param accountIndex Which account index to get settings from.
-     * @return [FazpassSettings] instance of that [accountIndex] if it has been set. Return null otherwise.
+     * @return [FazpassSettings] instance of that [accountIndex] if it has been set. Returns null otherwise.
      */
     fun getSettingsForAccountIndex(accountIndex: Int) : FazpassSettings?
 
@@ -59,7 +59,7 @@ internal interface AndroidTrustedDevice {
      * then call the listen(callback) method. To stop listening, call the close() method.
      *
      * Before you listen to cross device login request, make sure these requirements
-     * has been met:
+     * have been met:
      * - Device has been enrolled
      * - Device is trusted
      * - Device fazpass_id is still active
@@ -77,5 +77,5 @@ internal interface AndroidTrustedDevice {
      * @return An instance of [CrossDeviceRequest] from cross device request notification.
      * Will be null if app isn't launched from the notification.
      */
-    fun getCrossDeviceRequestFromFirstActivityIntent(intent: Intent?) : CrossDeviceRequest?
+    fun getCrossDeviceRequestFromNotification(intent: Intent?) : CrossDeviceRequest?
 }

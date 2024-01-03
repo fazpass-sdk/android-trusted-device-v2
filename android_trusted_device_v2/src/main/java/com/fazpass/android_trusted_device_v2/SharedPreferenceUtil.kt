@@ -26,17 +26,16 @@ internal class SharedPreferenceUtil(context: Context) {
     }
 
     private fun saveAccountIndex(accountIndex: Int) {
-        val key = KEY_ACCOUNT_INDEX_LIST
-        val oldSet = prefs.getStringSet(key, setOf<String>())!!
-        val newSet = setOf<String>(*oldSet.toTypedArray(), accountIndex.toString())
+        val oldSet = getAccountIndexSet()
+        val newSet = setOf(*oldSet.toTypedArray(), accountIndex.toString())
         prefs.edit(commit = true) {
-            putStringSet(key, newSet)
+            putStringSet(KEY_ACCOUNT_INDEX_LIST, newSet)
         }
     }
 
     private fun removeAccountIndex(accountIndex: Int) {
-        val oldSet = prefs.getStringSet(KEY_ACCOUNT_INDEX_LIST, setOf<String>())!!
-        val newSet = hashSetOf<String>(*oldSet.toTypedArray()).apply {
+        val oldSet = getAccountIndexSet()
+        val newSet = hashSetOf(*oldSet.toTypedArray()).apply {
             remove(accountIndex.toString())
         }.toSet()
 
