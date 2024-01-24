@@ -54,9 +54,6 @@ class MainActivity : AppCompatActivity() {
 
         Fazpass.instance.init(this, PUBLIC_KEY_ASSET_FILENAME)
 
-        val a = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
-        a.listen {  }
-
         infoView = findViewById(R.id.ma_info_view)
 
         val settingsBtn = findViewById<Button>(R.id.ma_settings_btn)
