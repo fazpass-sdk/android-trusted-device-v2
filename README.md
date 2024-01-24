@@ -69,8 +69,7 @@ Fazpass.instance.init(this, "YOUR_PUBLIC_KEY_ASSET_NAME")
 
 ## Usage
 
-Call `generateMeta(activity: Activity, accountIndex: Int, callback: (meta: String, exception: FazpassException?) -> Unit)`
-method to launch local authentication (biometric / password) and generate meta if local authentication is success. 
+Call `generateMeta()` method to launch local authentication (biometric / password) and generate meta if local authentication is success. 
 Otherwise `BiometricAuthError` exception will occurs.
 ```kotlin
 Fazpass.instance.generateMeta(this) { meta, exception ->
@@ -128,15 +127,15 @@ Produced when android can't start biometric authentication because the specified
 ## Set preferences for data collection
 
 This package supports application with multiple accounts, and each account can have different settings for generating meta.
-To set preferences for data collection, call `setSettings(int accountIndex, FazpassSettings? settings)` method.
+To set preferences for data collection, call `setSettings()` method.
 
 ```kotlin
 // index of an account
 val accountIndex = 0
 
 // create preferences
-val settings = FazpassSettingsBuilder()
-  .enableSelectedSensitiveData([SensitiveData.location])
+val settings = FazpassSettings.Builder()
+  .enableSelectedSensitiveData(SensitiveData.location)
   .setBiometricLevelToHigh()
   .build()
 
@@ -167,7 +166,7 @@ Other is a special case. They collect a complicated test result, and might chang
 To enable Sensitive data collection, you need to set preferences for them and
 specifies which sensitive data you want to collect.
 ```kotlin
-val builder = FazpassSettingsBuilder()
+val builder = FazpassSettings.Builder()
     .enableSelectedSensitiveData(
       SensitiveData.location,
       SensitiveData.simNumbersAndOperators,
@@ -178,7 +177,7 @@ Then, you have to follow the procedure on how to enable each of them as describe
 
 For others, you also need to set preferences for them and specifies which you want to enable.
 ```kotlin
-val builder = FazpassSettingsBuilder()
+val builder = FazpassSettings.Builder()
     .setBiometricLevelToHigh()
 ```
 For detail, read their description in their own segment down below.
