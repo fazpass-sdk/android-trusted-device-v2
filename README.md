@@ -6,7 +6,7 @@ Visit [official website](https://fazpass.com) for more information about the pro
 
 ## Minimum OS
 
-Android 23
+Android 24
 
 ## installation
 
