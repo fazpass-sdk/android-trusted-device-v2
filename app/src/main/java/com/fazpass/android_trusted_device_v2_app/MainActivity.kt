@@ -54,12 +54,15 @@ class MainActivity : AppCompatActivity() {
 
         Fazpass.instance.init(this, PUBLIC_KEY_ASSET_FILENAME)
 
+        val a = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
+        a.listen {  }
+
         infoView = findViewById(R.id.ma_info_view)
 
         val settingsBtn = findViewById<Button>(R.id.ma_settings_btn)
         settingsBtn.setOnClickListener {
             // load fazpass settings
-            val fazpassSettings = Fazpass.instance.getSettingsForAccountIndex(-1)
+            val fazpassSettings = Fazpass.instance.getSettings(-1)
             val oldSettings = if (fazpassSettings != null) booleanArrayOf(
                 fazpassSettings.sensitiveData.contains(SensitiveData.location),
                 fazpassSettings.sensitiveData.contains(SensitiveData.simNumbersAndOperators),
@@ -98,13 +101,13 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     if (newSettings[2]!!) {
-                        Fazpass.instance.generateSecretKeyForHighLevelBiometric(this)
+                        Fazpass.instance.generateNewSecretKey(this)
                         newFazpassSettings.setBiometricLevelToHigh()
                     } else {
                         newFazpassSettings.setBiometricLevelToLow()
                     }
 
-                    Fazpass.instance.setSettingsForAccountIndex(this, -1, newFazpassSettings.build())
+                    Fazpass.instance.setSettings(this, -1, newFazpassSettings.build())
 
                     dialog.dismiss()
                 }

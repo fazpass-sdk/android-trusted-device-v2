@@ -1,11 +1,14 @@
 package com.fazpass.android_trusted_device_v2.`object`
 
+import com.fazpass.android_trusted_device_v2.Fazpass
 import com.fazpass.android_trusted_device_v2.SensitiveData
 
 /**
- * Control how meta is generated based on this settings.
+ * An object to be used as settings for [Fazpass.setSettings] method.
  *
- * @sample settings
+ * This object isn't meant to be created by itself as it's only constructor,
+ * [FazpassSettings.fromString], isn't meant to be called independently.
+ * Use [FazpassSettings.Builder] class instead.
  */
 class FazpassSettings private constructor(
     val sensitiveData: List<SensitiveData>,
@@ -30,9 +33,34 @@ class FazpassSettings private constructor(
         return "${sensitiveData.joinToString(separator = ",") { it.name }};$isBiometricLevelHigh"
     }
 
-    class Builder {
+    /**
+     * A builder to create [FazpassSettings] object.
+     *
+     * To enable specific sensitive data collection, call [enableSelectedSensitiveData] method
+     * and specify which data you want to collect.
+     * Otherwise call [disableSelectedSensitiveData] method
+     * and specify which data you don't want to collect.
+     * To set biometric level to high, call [setBiometricLevelToHigh]. Otherwise call
+     * [setBiometricLevelToLow].
+     * To create [FazpassSettings] object with this builder configuration, call [build] method.
+     *
+     * You can also copy settings from [FazpassSettings] by using the secondary constructor of this builder.
+     *
+     * @sample settings
+     * @sample builderFromSettings
+     *
+     */
+    class Builder constructor() {
         var sensitiveDataList: ArrayList<SensitiveData> = arrayListOf()
+            private set
+            get() = sensitiveDataList.toList() as ArrayList<SensitiveData>
         var isBiometricLevelHigh: Boolean = false
+            private set
+
+        constructor(settings: FazpassSettings) : this() {
+            sensitiveDataList.addAll(settings.sensitiveData)
+            isBiometricLevelHigh = settings.isBiometricLevelHigh
+        }
 
         fun enableSelectedSensitiveData(vararg sensitiveData: SensitiveData) : Builder {
             for (data in sensitiveData) {
@@ -72,7 +100,9 @@ class FazpassSettings private constructor(
     }
 }
 
-private val settings = FazpassSettings.Builder()
+private val settings: FazpassSettings = FazpassSettings.Builder()
     .enableSelectedSensitiveData(SensitiveData.location, SensitiveData.simNumbersAndOperators)
     .setBiometricLevelToHigh()
     .build()
+
+private val builderFromSettings: FazpassSettings.Builder = FazpassSettings.Builder(settings)

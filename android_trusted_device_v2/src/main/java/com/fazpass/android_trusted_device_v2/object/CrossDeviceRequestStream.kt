@@ -6,7 +6,14 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.fazpass.android_trusted_device_v2.Fazpass
 
+/**
+ * An instance acquired from [Fazpass.getCrossDeviceRequestStreamInstance] to start listening for
+ * incoming cross device request notification.
+ *
+ * call [listen] method to start listening, and call [close] to stop.
+ */
 @Suppress("DEPRECATION")
 class CrossDeviceRequestStream internal constructor(
     val context: Context,
@@ -25,7 +32,7 @@ class CrossDeviceRequestStream internal constructor(
         }
     }
 
-    var callback: ((CrossDeviceRequest) -> Unit)? = null
+    private var callback: ((CrossDeviceRequest) -> Unit)? = null
 
     fun listen(callback: (CrossDeviceRequest) -> Unit) {
         if (this.callback != null) {

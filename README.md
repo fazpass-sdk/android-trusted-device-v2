@@ -55,7 +55,7 @@ dependencies {
 
 ## Getting Started
 
-Before using our product, make sure to contact us first to get keypair of public key and private key.
+Before using thi SDK, make sure to contact us first to get a keypair of public key and private key.
 after you have each of them, put the public key into the assets folder.
 
 1. Open android folder, then go to app/src/main/assets/ (if assets folder doesn't exist, create a new one)
@@ -69,10 +69,9 @@ Fazpass.instance.init(this, "YOUR_PUBLIC_KEY_ASSET_NAME")
 
 ## Usage
 
-Call `generateMeta(activity: Activity, callback: (String, FazpassException?) -> Unit)` method to generate meta. This method
-collects specific information and generates meta data as Base64 string.
-You can use this meta to hit Fazpass API endpoint. **Will launch biometric authentication before
-generating meta**. Meta will be empty string if exception is present.
+Call `generateMeta(activity: Activity, accountIndex: Int, callback: (meta: String, exception: FazpassException?) -> Unit)`
+method to launch local authentication (biometric / password) and generate meta if local authentication is success. 
+Otherwise `BiometricAuthError` exception will occurs.
 ```kotlin
 Fazpass.instance.generateMeta(this) { meta, exception ->
     when (exception) {
@@ -126,21 +125,63 @@ more hardware sensors. The affected sensor(s) are unavailable until a security u
 
 Produced when android can't start biometric authentication because the specified options are incompatible with the current Android version.
 
+## Set preferences for data collection
+
+This package supports application with multiple accounts, and each account can have different settings for generating meta.
+To set preferences for data collection, call `setSettings(int accountIndex, FazpassSettings? settings)` method.
+
+```kotlin
+// index of an account
+val accountIndex = 0
+
+// create preferences
+val settings = FazpassSettingsBuilder()
+  .enableSelectedSensitiveData([SensitiveData.location])
+  .setBiometricLevelToHigh()
+  .build()
+
+// save preferences
+Fazpass.instance.setSettings(accountIndex, settings)
+
+// apply saved preferences by using the same account index
+val meta = Fazpass.instance.generateMeta(this, accountIndex) { meta, exception -> 
+    print(meta)
+}
+
+// delete saved preferences
+Fazpass.instance.setSettings(accountIndex, null)
+```
+
+`generateMeta()` accountIndex parameter has -1 as it's default value.
+
+> We strongly advised against saving preferences into default account index. If your application
+> only allows one active account, use 0 instead.
+
 ## Data Collection
 
-Data collected and stored in generated meta. Based on data sensitivity, data type is divided into two: General data and Sensitive data.
-General data is always collected while Sensitive data requires you to enable it and user to grant the required permission before it can be collected.
+Data collected and stored in generated meta. Based on how data is collected, data type is divided into three:
+General data, Sensitive data and Other.
+General data is always collected while Sensitive data requires more complicated procedures before they can be collected.
+Other is a special case. They collect a complicated test result, and might change how `generateMeta()` method works.
 
-To enable Sensitive data collection, after calling fazpass init method, you need to call `enableSelected(vararg sensitiveData: SensitiveData)` method and
+To enable Sensitive data collection, you need to set preferences for them and
 specifies which sensitive data you want to collect.
 ```kotlin
-Fazpass.instance.enableSelected(
-    SensitiveData.location,
-    SensitiveData.simNumbersAndOperators
+val builder = FazpassSettingsBuilder()
+    .enableSelectedSensitiveData(
+      SensitiveData.location,
+      SensitiveData.simNumbersAndOperators,
+      SensitiveData.vpn
 )
 ```
-After enabling specified Sensitive data, you have to ask for user permissions before you call generate meta method. Specified Sensitive data will be collected
-if user granted the required permissions, otherwise it won't be collected and no error will be produced.
+Then, you have to follow the procedure on how to enable each of them as described in their own segment down below.
+
+For others, you also need to set preferences for them and specifies which you want to enable.
+```kotlin
+val builder = FazpassSettingsBuilder()
+    .setBiometricLevelToHigh()
+```
+For detail, read their description in their own segment down below.
 
 ### General data collected
 
@@ -171,3 +212,50 @@ make sure the user has enabled their location/gps settings before you call gener
 Required Permissions:
 * android.permission.READ_PHONE_NUMBERS
 * android.permission.READ_PHONE_STATE
+
+### Other data collected
+
+#### High-level biometric
+
+Enabling high-level biometrics makes the local authentication in `generateMeta()` method use ONLY biometrics,
+preventing user to use password as another option. After enabling this for the first time, immediately call `generateNewSecretKey()`
+method to create a secret key that will be stored safely in device keystore provider. From now on, calling `generateMeta()`
+with High-level biometric preferences will conduct an encryption & decryption test using the newly created secret key.
+whenever the test is failed, it means the secret key has been invalidated because one these occurred:
+- Device has enrolled another biometric information (new fingerprints, face, or iris)
+- Device has cleared all biometric information
+- Device removed their device passcode (password, pin, pattern, etc.)
+
+When secret key has been invalidated, trying to hit Fazpass Check API will fail. The recommended action for this is
+to sign out every account that has enabled high-level biometric and make them sign in again with low-level biometric settings.
+If you want to re-enable high-level biometrics after the secret key has been invalidated, make sure to
+call `generateNewSecretKey()` once again.
+
+## Handle incoming Cross Device Request notification
+
+When application is in background state (not running), incoming cross device request will enter your system notification tray
+and shows them as a notification. Pressing said notification will launch the application with cross device request data as an argument.
+When application is in foreground state (currently running), incoming cross device request will immediately sent into the application
+without showing any notification.
+
+To retrieve cross device request when app is in background state, you have to call `getCrossDeviceRequestFromNotification()` method.
+```kotlin
+// IMPORTANT: Make sure you filled the parameter with the first activity's intent since app launch
+val request = Fazpass.instance.getCrossDeviceRequestFromNotification(this@MainActivity.intent)
+```
+
+To retrieve cross device request when app is in foreground state, you have to get the stream instance by calling
+`getCrossDeviceRequestStreamInstance()` then start listening to the stream.
+```kotlin
+// get the stream instance
+val requestStream: CrossDeviceRequestStream = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
+
+// start listening to the stream
+requestStream.listen { request ->
+  // called everytime there is an incoming cross device request notification
+  print(request)
+}
+
+// stop listening to the stream
+requestStream.close()
+```

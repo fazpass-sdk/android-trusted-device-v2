@@ -2,7 +2,14 @@ package com.fazpass.android_trusted_device_v2.`object`
 
 import android.os.Bundle
 import java.io.Serializable
+import com.fazpass.android_trusted_device_v2.Fazpass
 
+/**
+ * An object containing data from cross device notification request.
+ *
+ * This object is only used as data retrieved from [Fazpass.getCrossDeviceRequestStreamInstance]
+ * and [Fazpass.getCrossDeviceRequestFromNotification].
+ */
 class CrossDeviceRequest : Serializable {
     val merchantAppId : String
     val expired : Int // 300

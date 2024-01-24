@@ -89,7 +89,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         }
     }
 
-    override fun generateSecretKeyForHighLevelBiometric(context: Context) {
+    override fun generateNewSecretKey(context: Context) {
         // delete all saved iv parameter and encrypted string
         val prefs = SharedPreferenceUtil(context)
         val accountIndexSet = prefs.getAccountIndexSet()
@@ -102,7 +102,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         SecureUtil.generateKey()
     }
 
-    override fun setSettingsForAccountIndex(context: Context, accountIndex: Int, settings: FazpassSettings?) {
+    override fun setSettings(context: Context, accountIndex: Int, settings: FazpassSettings?) {
         if (settings != null) {
             this.settings[accountIndex] = settings
         } else {
@@ -112,7 +112,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
         SharedPreferenceUtil(context).saveFazpassSettings(accountIndex, settings)
     }
 
-    override fun getSettingsForAccountIndex(accountIndex: Int): FazpassSettings? =
+    override fun getSettings(accountIndex: Int): FazpassSettings? =
         this.settings[accountIndex]
 
     override fun getCrossDeviceRequestStreamInstance(context: Context) : CrossDeviceRequestStream {
