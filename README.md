@@ -55,7 +55,7 @@ dependencies {
 
 ## Getting Started
 
-Before using thi SDK, make sure to contact us first to get a keypair of public key and private key.
+Before using this SDK, make sure to contact us first to get a keypair of public key and private key.
 after you have each of them, put the public key into the assets folder.
 
 1. Open android folder, then go to app/src/main/assets/ (if assets folder doesn't exist, create a new one)
