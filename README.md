@@ -55,10 +55,10 @@ dependencies {
 
 ## Getting Started
 
-Before using this SDK, make sure to contact us first to get a keypair of public key and private key.
-after you have each of them, put the public key into the assets folder.
+Before using this SDK, make sure to contact us first to get a public key.
+Then, put the public key into the assets folder.
 
-1. Open android folder, then go to app/src/main/assets/ (if assets folder doesn't exist, create a new one)
+1. Open your android root project, then go to src/main/assets/ (if assets folder doesn't exist, create a new one)
 2. Put the public key in this folder
 
 This package main purpose is to generate meta which you can use to communicate with Fazpass rest API. But
