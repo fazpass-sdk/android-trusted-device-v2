@@ -8,7 +8,7 @@ Visit [official website](https://fazpass.com) for more information about the pro
 
 Android 24
 
-## installation
+## Installation
 
 ### 1. Add Jitpack repo in your gradle repositories
 
