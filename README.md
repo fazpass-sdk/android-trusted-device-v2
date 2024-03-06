@@ -80,8 +80,8 @@ Put this line of code in your main activity
 Log.i("APPSGN", Fazpass.helper.getAppSignatures(this).toString())
 ```
 Then build apk for release. Launch it while your device is still connected and debugging in your pc.
-Open logcat and query for `APPSGN`. It's value is an array, will look something like this: "[Gw+6AWbS7l7JQ7Umb1zcs1aNA8M=]".
-If item is more than one, pick just one of them. Copy the signature (Gw+6AWbS7l7JQ7Umb1zcs1aNA8M=) and fill the signature 
+Open logcat and query for `APPSGN`. It's value is an array, will look something like this: `[Gw+6AWbS7l7JQ7Umb1zcs1aNA8M=]`.
+If item is more than one, pick just one of them. Copy the signature `Gw+6AWbS7l7JQ7Umb1zcs1aNA8M=` and fill the signature 
 of your merchant app with this value.
 
 After you uploaded your apk or abb into the playstore, download your app from the playstore then check your app's signatures again.
