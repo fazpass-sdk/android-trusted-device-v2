@@ -54,11 +54,13 @@ class Fazpass private constructor(): AndroidTrustedDevice {
          *
          * Change to false on production!
          */
-        internal const val IS_DEBUG = true
+        internal const val IS_DEBUG = false
 
         private const val FCM_TOKEN_TIMEOUT = 5 // in seconds
 
         val instance : Fazpass by lazy { Fazpass() }
+
+        val helper = FazpassHelper()
     }
 
     override fun init(context: Context, publicKeyAssetName: String) {

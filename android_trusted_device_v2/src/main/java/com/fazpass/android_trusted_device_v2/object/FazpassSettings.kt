@@ -50,10 +50,9 @@ class FazpassSettings private constructor(
      * @sample builderFromSettings
      *
      */
-    class Builder constructor() {
+    class Builder() {
         var sensitiveDataList: ArrayList<SensitiveData> = arrayListOf()
             private set
-            get() = sensitiveDataList.toList() as ArrayList<SensitiveData>
         var isBiometricLevelHigh: Boolean = false
             private set
 

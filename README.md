@@ -67,6 +67,26 @@ before calling generate meta method, you have to initialize it first by calling 
 Fazpass.instance.init(this, "YOUR_PUBLIC_KEY_ASSET_NAME")
 ```
 
+### Retrieving your application signatures
+
+When creating a new merchant app in Fazpass Dashboard, there is a "signature" input.
+
+![Fazpass Dashboard create new merchant app image](fazpass_dashboard_add_merchant.png)
+
+Here's how to get this signature:
+
+Put this line of code in your main activity
+```kotlin
+Log.i("APPSGN", Fazpass.helper.getAppSignatures(this).toString())
+```
+Then build apk for release. Launch it while your device is still connected and debugging in your pc.
+Open logcat and query for `APPSGN`. It's value is an array, will look something like this: "[Gw+6AWbS7l7JQ7Umb1zcs1aNA8M=]".
+If item is more than one, pick just one of them. Copy the signature (Gw+6AWbS7l7JQ7Umb1zcs1aNA8M=) and fill the signature 
+of your merchant app with this value.
+
+After you uploaded your apk or abb into the playstore, download your app from the playstore then check your app's signatures again.
+If it's different, make sure to update the signature value of your merchant app.
+
 ## Usage
 
 Call `generateMeta()` method to launch local authentication (biometric / password) and generate meta if local authentication is success. 

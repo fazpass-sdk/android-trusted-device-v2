@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Base64
 import android.util.JsonReader
+import android.util.Log
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -15,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.fazpass.android_trusted_device_v2.Fazpass
+import com.fazpass.android_trusted_device_v2.FazpassHelper
 import com.fazpass.android_trusted_device_v2.SensitiveData
 import com.fazpass.android_trusted_device_v2.`object`.FazpassSettings
 import java.nio.charset.StandardCharsets
@@ -26,7 +28,7 @@ import javax.crypto.Cipher
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        private const val PUBLIC_KEY_ASSET_FILENAME = "staging-public_key.pub"
+        private const val PUBLIC_KEY_ASSET_FILENAME = "new-public-key.pub"
         //"staging-public_key.pub"
         //"my_public_key.pub"
         private const val PRIVATE_KEY_ASSET_FILENAME = "staging-private_key.key"
@@ -53,6 +55,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         Fazpass.instance.init(this, PUBLIC_KEY_ASSET_FILENAME)
+
+        Log.i("APP SIGNATURES", Fazpass.helper.getAppSignatures(this).toString())
 
         infoView = findViewById(R.id.ma_info_view)
 
