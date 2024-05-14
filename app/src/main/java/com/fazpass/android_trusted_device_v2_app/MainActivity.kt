@@ -138,6 +138,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         requestPermissions()
+
+        val backgroundRequest = Fazpass.instance.getCrossDeviceRequestFromNotification(intent)
+        if (backgroundRequest != null) {
+            Log.i("Cross login requester", backgroundRequest.deviceRequest)
+        }
+        val streamRequest = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
+        streamRequest.listen {
+            Log.i("Cross login requester", it.deviceRequest)
+            streamRequest.close()
+        }
     }
 
     private fun onErrorOccurred(e: Exception) {

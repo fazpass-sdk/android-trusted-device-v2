@@ -1,6 +1,5 @@
 package com.fazpass.android_trusted_device_v2
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -9,7 +8,6 @@ import android.util.Log
 import java.security.MessageDigest
 
 @Suppress("DEPRECATION")
-@SuppressLint("PackageManagerGetSignatures")
 internal class AppSignatureUtil(private val context: Context) {
 
     val getSignatures : List<String>

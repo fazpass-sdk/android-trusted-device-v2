@@ -6,6 +6,7 @@ import android.os.Build
 import android.util.Base64
 import java.security.MessageDigest
 
+@Suppress("DEPRECATION")
 class FazpassHelper internal constructor() {
 
     fun getAppSignatures(context: Context) : List<String> {

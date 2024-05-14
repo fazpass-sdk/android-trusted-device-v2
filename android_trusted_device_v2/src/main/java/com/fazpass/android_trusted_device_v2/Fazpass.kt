@@ -11,6 +11,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
@@ -244,7 +245,7 @@ class Fazpass private constructor(): AndroidTrustedDevice {
 
     private fun openBiometric(ctx: Activity, accountIndex: Int, isBiometricLevelHigh: Boolean,
                               callback: (hasChanged: Boolean, FazpassException?) -> Unit) {
-        val authenticators = if (isBiometricLevelHigh) BIOMETRIC_STRONG else DEVICE_CREDENTIAL or BIOMETRIC_STRONG
+        val authenticators = if (isBiometricLevelHigh) BIOMETRIC_STRONG else DEVICE_CREDENTIAL or BIOMETRIC_WEAK
 
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             val keyguardManager = ctx.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager

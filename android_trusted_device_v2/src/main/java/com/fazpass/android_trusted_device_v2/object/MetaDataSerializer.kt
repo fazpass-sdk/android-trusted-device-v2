@@ -14,7 +14,7 @@ internal class MetaDataSerializer(value: MetaData) : CustomSerializer() {
      *  "is_clone_app":true/false,
      *  "is_screen_sharing":true/false,
      *  "is_debug":true/false,
-     *  "application":"com.fazpass.android_trusted_device_v2_app"
+     *  "application":"com.fazpass.android_trusted_device_v2_app",
      *  "device_id":{
      *      "name":"Samsung",
      *      "os_version":"Q",
