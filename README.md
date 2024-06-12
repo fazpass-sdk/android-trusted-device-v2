@@ -270,9 +270,17 @@ To retrieve cross device notification data when app is in foreground state, you 
 val crossDeviceStream: CrossDeviceDataStream = Fazpass.instance.getCrossDeviceDataStreamInstance(this)
 
 // start listening to the stream
-crossDeviceStream.listen { request ->
-  // called everytime there is an incoming cross device request notification
-  print(request)
+crossDeviceStream.listen { data ->
+  // called everytime there is an incoming cross device notification
+  print(data)
+
+  if (data.status == "request") {
+    val notificationId = data.notificationId!!
+    print(notificationId)
+  } else if (data.status == "validate") {
+    val action = data.action!!
+    print(action)
+  }
 }
 
 // stop listening to the stream
