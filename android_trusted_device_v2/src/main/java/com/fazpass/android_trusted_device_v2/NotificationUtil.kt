@@ -22,10 +22,10 @@ internal class NotificationUtil(private val context: Context) {
     companion object {
         /// change the value of default_notification_channel_id metadata in manifest when this value is changed
         const val channelId = "fazpass_android_trusted_device_v2_notification_channel"
-        const val channelName = "Fazpass Notification"
+        const val channelName = "Fazpass Login Notification"
 
-        const val fcmTokenReceiverChannel = "fazpass_fcm_token_receiver_channel"
-        const val fcmCrossDeviceRequestReceiverChannel = "fazpass_fcm_cd_request_receiver_channel"
+        const val fcmTokenChannel = "fazpass_fcm_token_channel"
+        const val fcmCrossDeviceChannel = "fazpass_fcm_cd_channel"
 
         const val locationNotificationId = 1
 
@@ -53,8 +53,7 @@ internal class NotificationUtil(private val context: Context) {
             if (Fazpass.IS_DEBUG) Log.i("FCM Token from getToken", it ?: "none")
         }
 
-        // register a receiver when there is a new fcm token, received from NotificationService
-        val updatedFcmTokenReceiver = object : BroadcastReceiver() {
+        val newFcmTokenReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 val token = intent.getStringExtra("token")
                 fcmToken = token
@@ -62,7 +61,7 @@ internal class NotificationUtil(private val context: Context) {
             }
         }
         LocalBroadcastManager.getInstance(context)
-            .registerReceiver(updatedFcmTokenReceiver, IntentFilter(fcmTokenReceiverChannel))
+            .registerReceiver(newFcmTokenReceiver, IntentFilter(fcmTokenChannel))
     }
 
     private fun createNotificationBuilder() : Notification.Builder {

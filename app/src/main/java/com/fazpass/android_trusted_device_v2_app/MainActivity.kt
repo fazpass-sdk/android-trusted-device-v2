@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Base64
 import android.util.JsonReader
-import android.util.Log
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -15,10 +14,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.fazpass.android_trusted_device_v2.Fazpass
-import com.fazpass.android_trusted_device_v2.FazpassHelper
-import com.fazpass.android_trusted_device_v2.SensitiveData
-import com.fazpass.android_trusted_device_v2.`object`.FazpassSettings
+import java.lang.NullPointerException
 import java.nio.charset.StandardCharsets
 import java.security.KeyFactory
 import java.security.PrivateKey
@@ -27,89 +23,104 @@ import javax.crypto.Cipher
 
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        private const val PUBLIC_KEY_ASSET_FILENAME = "new-public-key.pub"
-        //"staging-public_key.pub"
-        //"my_public_key.pub"
-        private const val PRIVATE_KEY_ASSET_FILENAME = "staging-private_key.key"
-        //"staging-private_key.key"
-        //"my_private_key.key"
-        private const val MERCHANT_APP_ID = "afb2c34a-4c4f-4188-9921-5c17d81a3b3d"
-        //"afb2c34a-4c4f-4188-9921-5c17d81a3b3d"
-        //"e30e8ae2-1557-46f6-ba3a-755b57ce4c44"
-        const val BEARER_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjozNn0.mfny8amysdJQYlCrUlYeA-u4EG1Dw9_nwotOl-0XuQ8"
-        //"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjozNn0.mfny8amysdJQYlCrUlYeA-u4EG1Dw9_nwotOl-0XuQ8"
-        //"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjo0fQ.WEV3bCizw9U_hxRC6DxHOzZthuJXRE8ziI3b6bHUpEI"
-    }
+    private val seamlessService = SeamlessService()
+    private val fazpassService = FazpassService(this)
+    private val dialogProvider = DialogProvider(this)
 
     private lateinit var infoView: LinearLayout
+    private lateinit var settingsBtn: Button
+    private lateinit var genMetaBtn: Button
 
-    private var meta: String? = null
+    private var meta: String = ""
+
+    private var fazpassId: String = ""
     private var fazpassIdIsShown = false
 
-    private var fazpassId: String? = null
     private var challenge: String = ""
+
+    private var notifiableDevices: ArrayList<NotifiableDeviceModel> = arrayListOf()
+
+    private val checkBtn: Button
+        get() = Button(this).apply {
+            text = "Check"
+            setOnClickListener {
+                seamlessService.check(meta, this@MainActivity::onCheckResponse)
+            }
+        }
+
+    private val actionBtn: Button
+        get() = Button(this).apply {
+            text = "Action"
+            setOnClickListener {
+                val items = arrayListOf("Enroll", "Validate", "Remove")
+                if (notifiableDevices.isNotEmpty()) {
+                    items.add("Send Notification")
+                }
+                dialogProvider.showActionDialog(items.toTypedArray()) { which ->
+                    when (which) {
+                        0 -> seamlessService.enroll(meta, challenge, this@MainActivity::onEnrollResponse)
+                        1 -> seamlessService.validate(meta, fazpassId, challenge) { response, status ->
+                            onDefaultResponse("Validate", response, status)
+                        }
+                        2 -> seamlessService.remove(meta, fazpassId, challenge) { response, status ->
+                            onDefaultResponse("Remove", response, status)
+                        }
+                        3 -> dialogProvider.showPickNotifiableDeviceDialog(notifiableDevices) { pickedDeviceId ->
+                            seamlessService.sendNotification(meta, pickedDeviceId) { response, status ->
+                                onDefaultResponse("Send Notification", response, status)
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Fazpass.instance.init(this, PUBLIC_KEY_ASSET_FILENAME)
-
-        Log.i("APP SIGNATURES", Fazpass.helper.getAppSignatures(this).toString())
+        fazpassService.init()
 
         infoView = findViewById(R.id.ma_info_view)
+        initSettingsBtn()
+        initGenMetaBtn()
 
-        val settingsBtn = findViewById<Button>(R.id.ma_settings_btn)
+        requestPermissions()
+
+        fazpassService.listenToIncomingCrossDeviceData(
+            this::onCrossDeviceRequest,
+            this::onCrossDeviceValidate
+        )
+    }
+
+    private fun initSettingsBtn() {
+        settingsBtn = findViewById(R.id.ma_settings_btn)
         settingsBtn.setOnClickListener {
             // load fazpass settings
-            val fazpassSettings = Fazpass.instance.getSettings(-1)
-            val oldSettings = if (fazpassSettings != null) booleanArrayOf(
-                fazpassSettings.sensitiveData.contains(SensitiveData.location),
-                fazpassSettings.sensitiveData.contains(SensitiveData.simNumbersAndOperators),
-                fazpassSettings.isBiometricLevelHigh
-            ) else null
-            val newSettings = arrayOf<Boolean?>(null, null, null)
+            val oldSettings = fazpassService.getSettings()
+            val newSettings = Settings()
             val dialog = AlertDialog.Builder(this)
                 .setTitle("Settings")
                 .setMultiChoiceItems(
                     arrayOf(
                         "Enable location",
                         "Enable Sim Information",
-                        "High Biometric Level"),
-                    oldSettings) { _, i, bool ->
-                    newSettings[i] = bool
+                        "High Biometric Level"
+                    ),
+                    booleanArrayOf(
+                        oldSettings.isLocationEnabled,
+                        oldSettings.isSimInfoEnabled,
+                        oldSettings.isHighLevelBiometricEnabled
+                    )
+                ) { _, i, newValue ->
+                    when (i) {
+                        0 -> newSettings.isLocationEnabled = newValue
+                        1 -> newSettings.isSimInfoEnabled = newValue
+                        2 -> newSettings.isHighLevelBiometricEnabled = newValue
+                    }
                 }
                 .setPositiveButton("Save") { dialog, _ ->
-                    val newFazpassSettings = FazpassSettings.Builder()
-
-                    for (i in newSettings.indices) {
-                        if (newSettings[i] == null) {
-                            newSettings[i] = oldSettings?.get(i) ?: false
-                        }
-                    }
-
-                    if (newSettings[0]!!) {
-                        newFazpassSettings.enableSelectedSensitiveData(SensitiveData.location)
-                    } else {
-                        newFazpassSettings.disableSelectedSensitiveData(SensitiveData.location)
-                    }
-
-                    if (newSettings[1]!!) {
-                        newFazpassSettings.enableSelectedSensitiveData(SensitiveData.simNumbersAndOperators)
-                    } else {
-                        newFazpassSettings.disableSelectedSensitiveData(SensitiveData.simNumbersAndOperators)
-                    }
-
-                    if (newSettings[2]!!) {
-                        Fazpass.instance.generateNewSecretKey(this)
-                        newFazpassSettings.setBiometricLevelToHigh()
-                    } else {
-                        newFazpassSettings.setBiometricLevelToLow()
-                    }
-
-                    Fazpass.instance.setSettings(this, -1, newFazpassSettings.build())
-
+                    fazpassService.setSettings(newSettings)
                     dialog.dismiss()
                 }
                 .setNegativeButton("Cancel") { dialog, _ ->
@@ -119,14 +130,16 @@ class MainActivity : AppCompatActivity() {
                 .create()
             dialog.show()
         }
+    }
 
-        val genMetaBtn = findViewById<Button>(R.id.ma_genmeta_btn)
+    private fun initGenMetaBtn() {
+        genMetaBtn = findViewById(R.id.ma_genmeta_btn)
         genMetaBtn.setOnClickListener {
             infoView.removeAllViews()
             fazpassIdIsShown = false
 
             try {
-                Fazpass.instance.generateMeta(this) { meta, fazpassException ->
+                fazpassService.generateMeta { meta, fazpassException ->
                     when (fazpassException) {
                         null -> onMetaGenerated(meta)
                         else -> onErrorOccurred(fazpassException.exception)
@@ -135,18 +148,6 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 onErrorOccurred(e)
             }
-        }
-
-        requestPermissions()
-
-        val backgroundRequest = Fazpass.instance.getCrossDeviceRequestFromNotification(intent)
-        if (backgroundRequest != null) {
-            Log.i("Cross login requester", backgroundRequest.deviceRequest)
-        }
-        val streamRequest = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
-        streamRequest.listen {
-            Log.i("Cross login requester", it.deviceRequest)
-            streamRequest.close()
         }
     }
 
@@ -167,18 +168,16 @@ class MainActivity : AppCompatActivity() {
     private fun onMetaGenerated(meta: String) {
         this.meta = meta
 
-        runOnUiThread {
-            infoView.addView(EntryView(this).apply {
-                name = "Generated Meta"
-                value = meta
-            })
+        infoView.addView(EntryView(this).apply {
+            name = "Generated Meta"
+            value = meta
+        })
 
-            infoView.addView(checkBtn)
-        }
+        infoView.addView(checkBtn)
     }
 
     private fun onCheckResponse(response: String, status: Boolean) {
-        infoView.removeView(checkBtn)
+        infoView.removeViewAt(infoView.childCount-1)
 
         infoView.addView(EntryView(this).apply {
             name = "Check Response"
@@ -188,10 +187,10 @@ class MainActivity : AppCompatActivity() {
         if (!status) return
 
         readDataFromResponse(response)
-        if (fazpassId?.isNotBlank() == true) {
+        if (fazpassId.isNotBlank()) {
             infoView.addView(EntryView(this).apply {
                 name = "Fazpass ID"
-                value = fazpassId!!
+                value = fazpassId
             })
             fazpassIdIsShown = true
         }
@@ -215,10 +214,10 @@ class MainActivity : AppCompatActivity() {
 
         if (status) {
             readDataFromResponse(response)
-            if (!fazpassIdIsShown && fazpassId?.isNotBlank() == true) {
+            if (!fazpassIdIsShown && fazpassId.isNotBlank()) {
                 infoView.addView(EntryView(this).apply {
                     name = "Fazpass ID"
-                    value = fazpassId!!
+                    value = fazpassId
                 })
                 fazpassIdIsShown = true
             }
@@ -230,93 +229,46 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun onValidateResponse(response: String, status: Boolean) {
-        infoView.removeViewAt(infoView.childCount-1)
-
-        infoView.addView(EntryView(this).apply {
-            name = "Validate Response"
-            value = response
-        })
-
-        infoView.addView(TextView(this).apply {
-            setTextColor(Color.RED)
-            text = "*Press 'Generate Meta' button to reset"
-        })
-    }
-
-    private fun onRemoveResponse(response: String, status: Boolean) {
-        infoView.removeViewAt(infoView.childCount-1)
-
-        infoView.addView(EntryView(this).apply {
-            name = "Remove Response"
-            value = response
-        })
-
-        infoView.addView(TextView(this).apply {
-            setTextColor(Color.RED)
-            text = "*Press 'Generate Meta' button to reset"
-        })
-    }
-
-    private val checkBtn: Button
-        get() = Button(this).apply {
-            text = "Check"
-            setOnClickListener {
-                val data = """{
-                    "merchant_app_id": "$MERCHANT_APP_ID",
-                    "meta": "$meta",
-                    "pic_id": "anvarisy@gmail.com"
-                }""".trimIndent()
-                APIRequest("https://api.fazpas.com/v2/trusted-device/check", data).fetch(this@MainActivity::onCheckResponse)
-            }
+    private fun onDefaultResponse(title: String, response: String, status: Boolean) {
+        if (title != "Send Notification" && title != "Validate Notification") {
+            infoView.removeViewAt(infoView.childCount-1)
         }
 
-    private val actionBtn: Button
-        get() = Button(this).apply {
-            text = "Action"
-            setOnClickListener {
-                val dialog = AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Pick one")
-                    .setItems(
-                        arrayOf("Enroll", "Validate", "Remove")
-                    ) { dialog, which ->
-                        when (which) {
-                            0 -> {
-                                val data = """{
-                                    "merchant_app_id": "$MERCHANT_APP_ID",
-                                    "meta": "$meta",
-                                    "pic_id": "anvarisy@gmail.com",
-                                    "challenge": "$challenge"
-                                }""".trimIndent()
-                                APIRequest("https://api.fazpas.com/v2/trusted-device/enroll",data).fetch(this@MainActivity::onEnrollResponse)
-                            }
-                            1 -> {
-                                val data = """{
-                                    "merchant_app_id": "$MERCHANT_APP_ID",
-                                    "meta": "$meta",
-                                    "fazpass_id": "$fazpassId",
-                                    "challenge": "$challenge"
-                                }""".trimIndent()
-                                APIRequest("https://api.fazpas.com/v2/trusted-device/validate",data).fetch(this@MainActivity::onValidateResponse)
-                            }
-                            2 -> {
-                                val data = """{
-                                    "merchant_app_id": "$MERCHANT_APP_ID",
-                                    "meta": "$meta",
-                                    "fazpass_id": "$fazpassId",
-                                    "challenge": "$challenge"
-                                }""".trimIndent()
-                                APIRequest("https://api.fazpas.com/v2/trusted-device/remove",data).fetch(this@MainActivity::onRemoveResponse)
-                            }
+        infoView.addView(EntryView(this).apply {
+            name = "$title Response"
+            value = response
+        })
+
+        infoView.addView(TextView(this).apply {
+            setTextColor(Color.RED)
+            text = "*Press 'Generate Meta' button to reset"
+        })
+    }
+
+    private fun onCrossDeviceRequest(deviceName: String, notificationId: String) {
+        fun onRespond(answer: Boolean) {
+            fazpassService.generateMeta { meta, fazpassException ->
+                when (fazpassException) {
+                    null -> {
+                        seamlessService.validateNotification(meta, notificationId, answer) { response, status ->
+                            onDefaultResponse("Validate Notification", response, status)
                         }
-                        dialog.dismiss()
                     }
-                    .setNegativeButton("Cancel") { dialog, which ->
-                        dialog.dismiss()
-                    }
-                dialog.show()
+                    else -> onErrorOccurred(fazpassException.exception)
+                }
             }
         }
+
+        dialogProvider.showCrossDeviceRequestDialog(
+            deviceName,
+            onAccept = { onRespond(true) },
+            onDeny = { onRespond(false) }
+        )
+    }
+
+    private fun onCrossDeviceValidate(deviceName: String, action: String) {
+        dialogProvider.showCrossDeviceValidateDialog(deviceName, action)
+    }
 
     private fun requestPermissions() {
         val requiredPermissions = ArrayList(
@@ -350,69 +302,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun readDataFromResponse(response: String) {
-        var meta = ""
         val responseReader = JsonReader(response.reader())
         responseReader.beginObject()
         while (responseReader.hasNext()) {
-            val key = responseReader.nextName()
-            if (key == "data") {
-                responseReader.beginObject()
-                continue
+            when (responseReader.nextName()) {
+                "data" -> responseReader.beginObject()
+                "meta" -> responseReader.beginObject()
+                "fazpass_id" -> this.fazpassId = responseReader.nextString()
+                "challenge" -> this.challenge = responseReader.nextString()
+                "notifiable_devices" -> {
+                    notifiableDevices.clear()
+                    responseReader.beginArray()
+                    while (responseReader.hasNext()) {
+                        notifiableDevices.add(NotifiableDeviceModel(responseReader))
+                    }
+                    responseReader.endArray()
+                }
+                else -> responseReader.skipValue()
             }
-            if (key == "meta") {
-                meta = responseReader.nextString()
-                break
-            }
-            responseReader.skipValue()
         }
         responseReader.close()
-
-        val decryptedMetaData = decryptMetaData(meta)
-        val reader = JsonReader(decryptedMetaData.reader())
-        reader.beginObject()
-
-        var fazpassId : String? = null
-        var isActive = false
-        var challenge = ""
-        while (reader.hasNext()) {
-            when (reader.nextName()) {
-                "fazpass_id" -> fazpassId = reader.nextString()
-                "is_active" -> isActive = reader.nextBoolean()
-                "challenge" -> challenge = reader.nextString()
-                else -> reader.skipValue()
-            }
-        }
-        reader.close()
-
-        if (isActive) {
-            this.fazpassId = fazpassId
-        } else {
-            this.fazpassId = null
-        }
-        this.challenge = challenge
-    }
-
-    private fun decryptMetaData(encryptedMetaData: String): String {
-        var key = String(assets.open(PRIVATE_KEY_ASSET_FILENAME).readBytes())
-        key = key.replace("-----BEGIN RSA PRIVATE KEY-----", "")
-            .replace("-----END RSA PRIVATE KEY-----", "")
-            .replace("\n", "").replace("\r", "")
-        val privateKey: PrivateKey?
-        try {
-            val keySpec = PKCS8EncodedKeySpec(Base64.decode(key, Base64.DEFAULT))
-            val keyFactory = KeyFactory.getInstance("RSA")
-            privateKey = keyFactory.generatePrivate(keySpec)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw e
-        }
-
-        val decryptedMetaData = Base64.decode(encryptedMetaData, Base64.DEFAULT)
-
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.DECRYPT_MODE, privateKey)
-        val decryptedBytes = cipher.doFinal(decryptedMetaData)
-
-        return String(decryptedBytes, StandardCharsets.UTF_8)
     }
 }

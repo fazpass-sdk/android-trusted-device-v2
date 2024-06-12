@@ -18,8 +18,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.fazpass.android_trusted_device_v2.`object`.BiometricInfo
 import com.fazpass.android_trusted_device_v2.`object`.Coordinate
-import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequest
-import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequestStream
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceData
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceDataStream
 import com.fazpass.android_trusted_device_v2.`object`.FazpassSettings
 import com.fazpass.android_trusted_device_v2.`object`.MetaData
 import com.fazpass.android_trusted_device_v2.`object`.MetaDataSerializer
@@ -118,23 +118,18 @@ class Fazpass private constructor(): AndroidTrustedDevice {
     override fun getSettings(accountIndex: Int): FazpassSettings? =
         this.settings[accountIndex]
 
-    override fun getCrossDeviceRequestStreamInstance(context: Context) : CrossDeviceRequestStream {
-        return CrossDeviceRequestStream(
+    override fun getCrossDeviceDataStreamInstance(context: Context) : CrossDeviceDataStream {
+        return CrossDeviceDataStream(
             context,
-            channel = NotificationUtil.fcmCrossDeviceRequestReceiverChannel,
+            channel = NotificationUtil.fcmCrossDeviceChannel,
         )
     }
 
-    override fun getCrossDeviceRequestFromNotification(intent: Intent?): CrossDeviceRequest? {
+    override fun getCrossDeviceDataFromNotification(intent: Intent?): CrossDeviceData? {
         val bundle = intent?.extras ?: return null
-        val request = CrossDeviceRequest(bundle)
+        val request = CrossDeviceData(bundle)
 
-        if (request.merchantAppId != ""
-            && request.expired != -1
-            && request.deviceReceive != ""
-            && request.deviceRequest != ""
-            && request.deviceIdReceive != ""
-            && request.deviceIdRequest != "") return request
+        if (request.isNotNull()) return request
         return null
     }
 

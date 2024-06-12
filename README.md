@@ -250,31 +250,31 @@ to sign out every account that has enabled high-level biometric and make them si
 If you want to re-enable high-level biometrics after the secret key has been invalidated, make sure to
 call `generateNewSecretKey()` once again.
 
-## Handle incoming Cross Device Request notification
+## Handle incoming Cross Device Notification
 
-When application is in background state (not running), incoming cross device request will enter your system notification tray
-and shows them as a notification. Pressing said notification will launch the application with cross device request data as an argument.
-When application is in foreground state (currently running), incoming cross device request will immediately sent into the application
+When application is in background state (not running), incoming cross device notification will enter your system notification tray
+and shows them as a notification. Pressing said notification will launch the application with cross device data as an argument.
+When application is in foreground state (currently running), incoming cross device notification will immediately sent into the application
 without showing any notification.
 
-To retrieve cross device request when app is in background state, you have to call `getCrossDeviceRequestFromNotification()` method.
+To retrieve cross device notification data when app is in background state, you have to call `getCrossDeviceDataFromNotification()` method.
 ```kotlin
 // IMPORTANT: Make sure you filled the parameter with the first activity's intent since app launch
-val request = Fazpass.instance.getCrossDeviceRequestFromNotification(this@MainActivity.intent)
+val data = Fazpass.instance.getCrossDeviceDataFromNotification(this@MainActivity.intent)
 ```
 
-To retrieve cross device request when app is in foreground state, you have to get the stream instance by calling
-`getCrossDeviceRequestStreamInstance()` then start listening to the stream.
+To retrieve cross device notification data when app is in foreground state, you have to get the stream instance by calling
+`getCrossDeviceDataStreamInstance()` then start listening to the stream.
 ```kotlin
 // get the stream instance
-val requestStream: CrossDeviceRequestStream = Fazpass.instance.getCrossDeviceRequestStreamInstance(this)
+val crossDeviceStream: CrossDeviceDataStream = Fazpass.instance.getCrossDeviceDataStreamInstance(this)
 
 // start listening to the stream
-requestStream.listen { request ->
+crossDeviceStream.listen { request ->
   // called everytime there is an incoming cross device request notification
   print(request)
 }
 
 // stop listening to the stream
-requestStream.close()
+crossDeviceStream.close()
 ```

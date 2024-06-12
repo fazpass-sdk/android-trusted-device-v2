@@ -3,8 +3,8 @@ package com.fazpass.android_trusted_device_v2
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequest
-import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceRequestStream
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceData
+import com.fazpass.android_trusted_device_v2.`object`.CrossDeviceDataStream
 import com.fazpass.android_trusted_device_v2.`object`.FazpassSettings
 
 internal interface AndroidTrustedDevice {
@@ -75,24 +75,18 @@ internal interface AndroidTrustedDevice {
     fun getSettings(accountIndex: Int) : FazpassSettings?
 
     /**
-     * Retrieves the stream instance of cross device request.
-     *
-     * Before you listen to cross device login request stream, make sure these requirements
-     * have been met:
-     * - Device has been enrolled.
-     * - Device is currently trusted (See Fazpass documentation for the definition of "trusted").
-     * - Application is in "Logged In" state.
+     * Retrieves the stream instance of cross device notification data.
      *
      * @param context Activity context.
      */
-    fun getCrossDeviceRequestStreamInstance(context: Context) : CrossDeviceRequestStream
+    fun getCrossDeviceDataStreamInstance(context: Context) : CrossDeviceDataStream
 
     /**
-     * Retrieves a [CrossDeviceRequest] object obtained from notification.
+     * Retrieves a [CrossDeviceData] object obtained from notification.
      *
      * @param intent Intent from getIntent() method of your first activity since app launch.
-     * @return An instance of [CrossDeviceRequest] from cross device request notification.
+     * @return An instance of [CrossDeviceData] from cross device notification.
      * Will be null if app isn't launched from the notification.
      */
-    fun getCrossDeviceRequestFromNotification(intent: Intent?) : CrossDeviceRequest?
+    fun getCrossDeviceDataFromNotification(intent: Intent?) : CrossDeviceData?
 }

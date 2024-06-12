@@ -19,9 +19,8 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:hint="VALUE"
-        android:textIsSelectable="true"
         android:inputType="none"
-        android:lines="5"
-        android:textColor="@color/black" />
+        android:textColor="@color/black"
+        android:textIsSelectable="true" />
 
 </merge>
