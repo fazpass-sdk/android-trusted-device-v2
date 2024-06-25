@@ -21,7 +21,11 @@ buildscript {
 allprojects {
 	repositories {
 		// Another repo...
-		maven { url 'https://jitpack.io' }
+
+		// On AGP version lower than 8.3.0
+	        maven { url 'https://jitpack.io' }
+		// On AGP version 8.3.0 or higher
+		maven("https://jitpack.io")
 	}
 }
 ```
@@ -37,7 +41,11 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         // Another repo...
+
+	// On AGP version lower than 8.3.0
         maven { url 'https://jitpack.io' }
+	// On AGP version 8.3.0 or higher
+	maven("https://jitpack.io")
     }
 }
 ```
