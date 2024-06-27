@@ -117,6 +117,12 @@ Fazpass.instance.generateMeta(this) { meta, exception ->
 }
 ```
 
+### Seamless Best Practice
+
+![Seamless best practice image](seamless best practice.jpg)
+
+Everytime you want to check your device by hitting Seamless API Check, you should generate a new meta from `generateMeta()` method to ensure your seamless status is up-to-date with your device current state. After a flow is finished, you have to start from the beginning to do another operation. Meta should not be saved into any persistent storage (shared preferences, local storage, database, etc.). But, generating meta too many times might leads to a bad user experience, since they have to do biometric authentication everytime meta is about to be generated. You should only check your device when you are about to do sensitive action (Login, Payment, etc.). For example, if you have an online store app, instead of checking your device for every item you add into your cart, it is better to just check your device when you are about to pay for everything in your cart.
+
 ## Exceptions
 
 #### UninitializedException
